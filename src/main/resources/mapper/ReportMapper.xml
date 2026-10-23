@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.report.ReportMapper">
+
+    <!-- 单日汇总：售卡/商品/服务三列分列，三列之和 = 当日实收（设计文档 §8.5） -->
+    <select id="dailySummary" resultType="map">
+        SELECT
+          (SELECT IFNULL(SUM(received_cent),0) FROM bill
+            WHERE bill_type='CARD' AND status='SETTLED'
+              AND business_date = #{date})                      AS cardIncome,
+          (SELECT IFNULL(SUM(i.amount_cent),0) FROM bill_item i
+            JOIN bill b ON b.id=i.bill_id
+            WHERE b.bill_type='SALE' AND b.status='SETTLED'
+              AND b.business_date = #{date}
+              AND i.item_type='PRODUCT' AND i.paid_by_card=0)   AS productIncome,
+          (SELECT IFNULL(SUM(i.amount_cent),0) FROM bill_item i
+            JOIN bill b ON b.id=i.bill_id
+            WHERE b.bill_type='SALE' AND b.status='SETTLED'
+              AND b.business_date = #{date}
+              AND i.item_type='SERVICE' AND i.paid_by_card=0)   AS serviceIncome,
+          (SELECT COUNT(*) FROM bill
+            WHERE bill_type='SALE' AND status='SETTLED'
+              AND business_date = #{date})                      AS billCount,
+          (SELECT IFNULL(SUM(qty),0) FROM card_consume_log l
+            WHERE substr(l.created_at,1,10) = #{date})          AS consumeTimes
+    </select>
+
+    <select id="dashboard" resultType="map">
+        SELECT
+          (SELECT COUNT(*) FROM bill
+            WHERE bill_type='SALE' AND status='SETTLED'
+              AND business_date = #{today})                     AS billCount,
+          (SELECT IFNULL(SUM(i.amount_cent),0) FROM bill_item i
+            JOIN bill b ON b.id=i.bill_id
+            WHERE b.bill_type='SALE' AND b.status='SETTLED'
+              AND b.business_date = #{today} AND i.paid_by_card=0) AS todayIncome,
+          (SELECT IFNULL(SUM(received_cent),0) FROM bill
+            WHERE bill_type='CARD' AND status='SETTLED'
+              AND business_date = #{today})                     AS cardIncome,
+          (SELECT COUNT(*) FROM pet_event e
+            JOIN pet p ON p.id = e.pet_id
+            WHERE e.contact_status IS NULL AND p.is_active = 1
+              AND e.next_due_on IS NOT NULL
+              AND e.next_due_on &lt;= date(#{today}, '+30 day')) AS remindCount,
+          (SELECT COUNT(*) FROM product
+            WHERE expire_on IS NOT NULL
+              AND expire_on &gt;= #{today}
+              AND expire_on &lt;= date(#{today}, '+30 day'))     AS expiringCount,
+          (SELECT COUNT(*) FROM product
+            WHERE is_active = 1
+              AND ((safety_qty &gt; 0 AND stock_qty &lt;= safety_qty)
+                   OR (safety_qty = 0 AND stock_qty &lt;= (SELECT IFNULL(CAST(v AS INTEGER),3) FROM store_config WHERE k='low_stock_warn')))) AS lowStockCount
+    </select>
+</mapper>

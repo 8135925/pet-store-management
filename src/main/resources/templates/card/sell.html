@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('售卡')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">售卡 <span class="sub">生成客户卡 + 一张售卡收款单</span></h1>
+
+      <div class="card" style="max-width:640px">
+        <div class="card-body">
+          <form method="post" th:action="@{/cards/sell}">
+            <div class="form-grid">
+              <div class="field full"><label>客户 *</label>
+                <select name="customerId" required>
+                  <option value="">— 选择客户 —</option>
+                  <option th:each="c : ${customers}" th:value="${c.id}"
+                          th:selected="${c.id == customerId}"
+                          th:text="${c.name} + ' ' + ${c.phone}"></option>
+                </select>
+              </div>
+              <div class="field full"><label>卡类型 *</label>
+                <select name="cardTypeId" id="typeSel" required onchange="syncPrice()">
+                  <option value="">— 选择卡类型 —</option>
+                  <option th:each="t : ${types}" th:value="${t.id}"
+                          th:attr="data-price=${t.priceCent}, data-desc=${t.paidQty} + ' 次 +' + ${t.giftQty} + ' 赠 · ' + ${t.validDays} + ' 天'"
+                          th:text="${t.name} + '（¥' + ${ui.yuan(t.priceCent)} + '，' + ${t.paidQty} + '+' + ${t.giftQty} + '次）'"></option>
+                </select>
+                <div class="hint" id="typeHint"></div>
+              </div>
+              <div class="field"><label>实收金额（元）*</label><input name="receivedYuan" id="receivedYuan" required placeholder="1200"></div>
+              <div class="field"><label>收款方式 *</label>
+                <select name="payMethod" required>
+                  <option value="CASH">现金</option>
+                  <option value="WECHAT">微信</option>
+                  <option value="ALIPAY">支付宝</option>
+                  <option value="BANK_CARD">银行卡</option>
+                  <option value="OTHER">其他</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt16">
+              <button class="btn lg" type="submit" onclick="this.disabled=true;this.form.submit()">确认售卡</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function syncPrice() {
+  var sel = document.getElementById('typeSel');
+  var opt = sel.options[sel.selectedIndex];
+  if (opt && opt.value) {
+    document.getElementById('receivedYuan').value = (opt.getAttribute('data-price') / 100).toFixed(2);
+    document.getElementById('typeHint').textContent = opt.getAttribute('data-desc') || '';
+  }
+}
+</script>
+</body>
+</html>

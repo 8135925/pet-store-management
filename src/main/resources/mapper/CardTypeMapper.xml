@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.card.CardTypeMapper">
+
+    <resultMap id="typeMap" type="com.petshop.module.card.CardType">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="serviceIds" column="service_ids"/>
+        <result property="paidQty" column="paid_qty"/>
+        <result property="giftQty" column="gift_qty"/>
+        <result property="priceCent" column="price_cent"/>
+        <result property="validDays" column="valid_days"/>
+        <result property="isActive" column="is_active"/>
+        <result property="serviceNames" column="service_names"/>
+    </resultMap>
+
+    <sql id="base">
+        SELECT t.*, (SELECT GROUP_CONCAT(s.name) FROM service_item s
+                     WHERE t.service_ids LIKE '%' || s.id || '%') AS service_names
+        FROM card_type t
+    </sql>
+
+    <select id="findById" resultMap="typeMap">
+        <include refid="base"/> WHERE t.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="typeMap">
+        <include refid="base"/> ORDER BY t.id DESC
+    </select>
+
+    <select id="findActive" resultMap="typeMap">
+        <include refid="base"/> WHERE t.is_active = 1 ORDER BY t.id
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO card_type(name, service_ids, paid_qty, gift_qty, price_cent, valid_days, is_active)
+        VALUES (#{name}, #{serviceIds}, #{paidQty}, #{giftQty}, #{priceCent}, #{validDays}, #{isActive})
+    </insert>
+
+    <update id="update">
+        UPDATE card_type SET name = #{name}, service_ids = #{serviceIds}, paid_qty = #{paidQty},
+                             gift_qty = #{giftQty}, price_cent = #{priceCent}, valid_days = #{validDays},
+                             is_active = #{isActive}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setActive">
+        UPDATE card_type SET is_active = #{active} WHERE id = #{id}
+    </update>
+</mapper>

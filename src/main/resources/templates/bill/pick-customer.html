@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('选择客户 · 开单收银')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">开单收银 · 第 1 步：选择客户</h1>
+
+      <form class="toolbar" method="get" action="/bills/new">
+        <input class="input" type="text" name="keyword" placeholder="客户姓名 / 手机号" th:value="${keyword}" style="width:200px">
+        <button class="btn ghost" type="submit">搜索</button>
+        <span class="muted small">找到客户后点「开单」进入结账页</span>
+      </form>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>客户</th><th>手机号</th><th>来源</th><th>状态</th><th>名下宠物</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="c : ${customers}">
+                <td><b th:text="${c.name}"></b></td>
+                <td th:text="${c.phone}"></td>
+                <td th:text="${c.source} ?: '—'"></td>
+                <td><span class="badge ok" th:text="${c.isActive} ? '正常' : '已停用'"></span></td>
+                <td th:text="${c.petCount}"></td>
+                <td><a class="btn primary sm" th:href="@{/bills/new(customerId=${c.id})}">开单</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(customers)}"><td colspan="6" class="muted">没有找到客户，请先在「客户档案」建档</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="muted small">
+        还没有客户？
+        <a href="/customers/new">去新建客户</a>
+      </p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

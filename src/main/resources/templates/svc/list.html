@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('服务项目')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">服务项目 <span class="sub">体型四档价：小 / 中 / 大 / 巨型</span></h1>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><span>＋ 新增服务项目</span></div>
+          <div class="card-body">
+            <form method="post" th:action="@{/services/save}">
+              <div class="form-grid">
+                <div class="field"><label>名称 *</label><input name="name" required placeholder="精洗 / 剪毛造型 / 药浴"></div>
+                <div class="field"><label>标准耗时（分钟）</label><input type="number" name="durationMin" value="60" min="1"></div>
+                <div class="field"><label>小型价（元）</label><input name="priceS" value="0"></div>
+                <div class="field"><label>中型价（元）</label><input name="priceM" value="0"></div>
+                <div class="field"><label>大型价（元）</label><input name="priceL" value="0"></div>
+                <div class="field"><label>巨型价（元）</label><input name="priceXL" value="0"></div>
+                <div class="field"><label>排序号（小的在前）</label><input type="number" name="sortNo" value="0"></div>
+              </div>
+              <div class="mt16"><button class="btn" type="submit">保存</button></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span>已配置项目</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>名称</th><th class="num">小</th><th class="num">中</th><th class="num">大</th><th class="num">巨型</th><th>耗时</th><th>状态</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="s : ${items}">
+                  <td><b th:text="${s.name}"></b></td>
+                  <td class="num" th:text="${ui.yuan(s.priceSCent)}"></td>
+                  <td class="num" th:text="${ui.yuan(s.priceMCent)}"></td>
+                  <td class="num" th:text="${ui.yuan(s.priceLCent)}"></td>
+                  <td class="num" th:text="${ui.yuan(s.priceXLCent)}"></td>
+                  <td class="small" th:text="${s.durationMin} + ' 分钟'"></td>
+                  <td><span class="badge" th:classappend="${s.isActive} ? 'ok' : 'muted'" th:text="${s.isActive} ? '在售' : '已下架'"></span></td>
+                  <td>
+                    <form method="post" th:action="@{/services/{id}/toggle(id=${s.id})}" style="display:inline"
+                          onsubmit="return confirmAct('切换服务上下架？')">
+                      <input type="hidden" name="active" th:value="${s.isActive} ? 'false' : 'true'">
+                      <button class="btn ghost sm" th:text="${s.isActive} ? '下架' : '上架'"></button>
+                    </form>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(items)}"><td colspan="8" class="muted">还没有服务项目</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <p class="small muted">体型档位规则：&lt;10kg 小 · 10–25kg 中 · 25–40kg 大 · ≥40kg 巨型（边界取大档）。</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

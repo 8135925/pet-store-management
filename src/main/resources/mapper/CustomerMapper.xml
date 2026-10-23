@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.customer.CustomerMapper">
+
+    <resultMap id="custMap" type="com.petshop.module.customer.Customer">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="phone" column="phone"/>
+        <result property="source" column="source"/>
+        <result property="remark" column="remark"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="petCount" column="pet_count"/>
+    </resultMap>
+
+    <sql id="cols">
+        c.id, c.name, c.phone, c.source, c.remark, c.is_active, c.created_at,
+        (SELECT COUNT(*) FROM pet p WHERE p.owner_id = c.id AND p.is_active = 1) AS pet_count
+    </sql>
+
+    <select id="findById" resultMap="custMap">
+        SELECT <include refid="cols"/> FROM customer c WHERE c.id = #{id}
+    </select>
+
+    <select id="findByPhone" resultMap="custMap">
+        SELECT <include refid="cols"/> FROM customer c WHERE c.phone = #{phone}
+    </select>
+
+    <select id="search" resultMap="custMap">
+        SELECT <include refid="cols"/> FROM customer c
+        <where>
+            <if test="!includeInactive"> AND c.is_active = 1 </if>
+            <if test="keyword != null and keyword != ''">
+                AND (c.name LIKE '%' || #{keyword} || '%' OR c.phone LIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+        ORDER BY c.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*) FROM customer c
+        <where>
+            <if test="!includeInactive"> AND c.is_active = 1 </if>
+            <if test="keyword != null and keyword != ''">
+                AND (c.name LIKE '%' || #{keyword} || '%' OR c.phone LIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="listActive" resultMap="custMap">
+        SELECT <include refid="cols"/> FROM customer c WHERE c.is_active = 1 ORDER BY c.id DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer(name, phone, source, remark, is_active, created_at)
+        VALUES (#{name}, #{phone}, #{source}, #{remark}, 1, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE customer SET name = #{name}, phone = #{phone}, source = #{source}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setActive">
+        UPDATE customer SET is_active = #{active} WHERE id = #{id}
+    </update>
+
+    <select id="countBills" resultType="long">
+        SELECT COUNT(*) FROM bill WHERE customer_id = #{customerId} AND status != 'OPEN'
+    </select>
+</mapper>

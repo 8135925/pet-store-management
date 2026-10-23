@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.card.CustomerCardMapper">
+
+    <resultMap id="cardMap" type="com.petshop.module.card.CustomerCard">
+        <id property="id" column="id"/>
+        <result property="cardNo" column="card_no"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="cardTypeId" column="card_type_id"/>
+        <result property="paidQty" column="paid_qty"/>
+        <result property="giftQty" column="gift_qty"/>
+        <result property="usedPaid" column="used_paid"/>
+        <result property="usedGift" column="used_gift"/>
+        <result property="paidAmountCent" column="paid_amount_cent"/>
+        <result property="issuedOn" column="issued_on"/>
+        <result property="expireOn" column="expire_on"/>
+        <result property="status" column="status"/>
+        <result property="sourceBillId" column="source_bill_id"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="customerPhone" column="customer_phone"/>
+        <result property="cardTypeName" column="card_type_name"/>
+    </resultMap>
+
+    <sql id="base">
+        SELECT cc.*, c.name AS customer_name, c.phone AS customer_phone, ct.name AS card_type_name
+        FROM customer_card cc
+        JOIN customer c ON c.id = cc.customer_id
+        JOIN card_type ct ON ct.id = cc.card_type_id
+    </sql>
+
+    <select id="findById" resultMap="cardMap">
+        <include refid="base"/> WHERE cc.id = #{id}
+    </select>
+
+    <select id="findByCustomer" resultMap="cardMap">
+        <include refid="base"/> WHERE cc.customer_id = #{customerId} ORDER BY cc.id DESC
+    </select>
+
+    <select id="findUsableByCustomer" resultMap="cardMap">
+        <include refid="base"/>
+        WHERE cc.customer_id = #{customerId}
+          AND cc.status = 'ACTIVE'
+          AND cc.expire_on &gt;= #{today}
+          AND (cc.paid_qty - cc.used_paid + cc.gift_qty - cc.used_gift) &gt; 0
+        ORDER BY cc.id
+    </select>
+
+    <select id="listBalance" resultMap="cardMap">
+        <include refid="base"/>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.name LIKE '%' || #{keyword} || '%' OR c.phone LIKE '%' || #{keyword} || '%' OR cc.card_no LIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND cc.status = #{status}
+            </if>
+        </where>
+        <choose>
+            <when test="orderByExpire">ORDER BY cc.expire_on ASC</when>
+            <otherwise>ORDER BY cc.id DESC</otherwise>
+        </choose>
+    </select>
+
+    <select id="countByNoPrefix" resultType="long">
+        SELECT COUNT(*) FROM customer_card WHERE card_no LIKE #{prefix} || '%'
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_card(card_no, customer_id, card_type_id, paid_qty, gift_qty,
+                                  used_paid, used_gift, paid_amount_cent, issued_on, expire_on,
+                                  status, source_bill_id, remark, created_at)
+        VALUES (#{cardNo}, #{customerId}, #{cardTypeId}, #{paidQty}, #{giftQty},
+                0, 0, #{paidAmountCent}, #{issuedOn}, #{expireOn},
+                #{status}, #{sourceBillId}, #{remark}, #{createdAt})
+    </insert>
+
+    <update id="setStatus">
+        UPDATE customer_card SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="updateExpire">
+        UPDATE customer_card SET expire_on = #{expireOn}, status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="updateSourceBill">
+        UPDATE customer_card SET source_bill_id = #{billId} WHERE id = #{id}
+    </update>
+
+    <!-- 核销扣次：判余额 + 扣减一条 UPDATE 完成，并发安全（设计文档 §7.2） -->
+    <update id="deductGiftFirst">
+        UPDATE customer_card
+        SET used_gift = used_gift + CASE WHEN (gift_qty - used_gift) &gt; 0 THEN 1 ELSE 0 END,
+            used_paid = used_paid + CASE WHEN (gift_qty - used_gift) &gt; 0 THEN 0 ELSE 1 END
+        WHERE id = #{cardId}
+          AND status = 'ACTIVE'
+          AND expire_on &gt;= #{today}
+          AND (paid_qty - used_paid + gift_qty - used_gift) &gt; 0
+    </update>
+
+    <update id="deductPaidFirst">
+        UPDATE customer_card
+        SET used_paid = used_paid + CASE WHEN (paid_qty - used_paid) &gt; 0 THEN 1 ELSE 0 END,
+            used_gift = used_gift + CASE WHEN (paid_qty - used_paid) &gt; 0 THEN 0 ELSE 1 END
+        WHERE id = #{cardId}
+          AND status = 'ACTIVE'
+          AND expire_on &gt;= #{today}
+          AND (paid_qty - used_paid + gift_qty - used_gift) &gt; 0
+    </update>
+
+    <!-- 反结账还原：按流水 from_gift 精确还原 -->
+    <update id="refundGift">
+        UPDATE customer_card SET used_gift = used_gift - #{qty} WHERE id = #{cardId} AND used_gift &gt;= #{qty}
+    </update>
+
+    <update id="refundPaid">
+        UPDATE customer_card SET used_paid = used_paid - #{qty} WHERE id = #{cardId} AND used_paid &gt;= #{qty}
+    </update>
+</mapper>

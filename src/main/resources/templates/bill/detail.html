@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('单据详情')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+
+      <div class="card" style="max-width:760px;margin:0 auto">
+        <div class="card-body">
+          <div class="flex-between no-print">
+            <h1 class="page-title mt0">单据 <span th:text="${bill.billNo}"></span>
+              <span class="badge" th:classappend="${bill.status == 'SETTLED'} ? 'ok' : 'danger'"
+                    th:text="${bill.status == 'SETTLED'} ? '已结账' : '已反结账'"></span>
+            </h1>
+            <div class="flex">
+              <button class="btn ghost" onclick="window.print()">🖨 打印（Ctrl+P）</button>
+              <form th:if="${session.sessionUser.isAdmin() and bill.status == 'SETTLED'}"
+                    method="post" th:action="@{/bills/{id}/cancel(id=${bill.id})}"
+                    onsubmit="var r=prompt('反结账原因（必填）：'); if(!r) return false; this.reason.value=r;">
+                <input type="hidden" name="reason">
+                <button class="btn danger">↩ 反结账</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="flex-between mt16">
+            <div>
+              <div class="muted small">客户</div>
+              <a th:href="@{'/customers/' + ${bill.customerId}}"><b th:text="${bill.customerName}"></b></a>
+              <span class="muted small" th:text="${bill.customerPhone}"></span>
+            </div>
+            <div class="right small muted">
+              <div>营业日：<b th:text="${bill.businessDate}"></b></div>
+              <div>结账时间：<span th:text="${ui.dt(bill.settledAt)}"></span></div>
+              <div>操作人：<span th:text="${bill.operator}"></span></div>
+              <div>收款方式：<span th:text="${ui.payMethod(bill.payMethod)}"></span></div>
+              <div th:if="${bill.billType == 'CARD'}">单据类型：<b>售卡收款单</b></div>
+            </div>
+          </div>
+
+          <div th:if="${bill.cancelReason != null}" class="alert err mt8">
+            已反结账（<span th:text="${ui.dt(bill.cancelledAt)}"></span>），原因：<span th:text="${bill.cancelReason}"></span>
+          </div>
+
+          <div th:if="${bill.billType == 'CARD'}" class="card mt16" style="margin:0">
+            <div class="card-body">
+              售卡单：<b th:text="${bill.remark}"></b>
+              <div class="mt8 sum-row total"><span>实收</span><span th:text="${ui.money(bill.receivedCent)}"></span></div>
+            </div>
+          </div>
+
+          <th:block th:if="${bill.billType == 'SALE'}">
+            <table class="tbl mt16">
+              <thead><tr><th>项目</th><th>宠物</th><th>体型</th><th class="num">数量</th><th class="num">单价</th><th class="num">优惠</th><th class="num">金额</th><th>抵扣卡</th></tr></thead>
+              <tbody>
+                <tr th:each="i : ${bill.items}">
+                  <td><span th:text="${i.nameSnapshot}"></span>
+                    <span class="badge primary" th:if="${i.itemType == 'SERVICE'}">服务</span>
+                    <span class="badge muted" th:if="${i.itemType == 'PRODUCT'}">商品</span></td>
+                  <td th:text="${i.petName} ?: '—'"></td>
+                  <td th:text="${i.sizeTier != null} ? ${ui.tier(i.sizeTier)} : '—'"></td>
+                  <td class="num" th:text="${i.qty}"></td>
+                  <td class="num" th:text="${ui.money(i.unitPriceCent)}"></td>
+                  <td class="num" th:text="${i.discountCent > 0} ? ${ui.money(i.discountCent)} : '—'"></td>
+                  <td class="num"><b th:text="${ui.money(i.amountCent)}"></b></td>
+                  <td><span th:if="${i.paidByCard}" class="badge warn" th:text="${i.cardNo} + ' 抵扣'"></span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="max-width:320px;margin-left:auto" class="mt16">
+              <div class="sum-row"><span class="muted">明细合计</span><span th:text="${ui.money(bill.totalCent)}"></span></div>
+              <div class="sum-row"><span class="muted">整单优惠</span><span th:text="'-' + ${ui.money(bill.discountCent)}"></span></div>
+              <div class="sum-row total"><span>实收</span><span th:text="${ui.money(bill.receivedCent)}"></span></div>
+            </div>
+          </th:block>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

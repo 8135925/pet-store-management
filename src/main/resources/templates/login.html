@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 宠物店管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/theme.css}">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-box">
+    <div class="logo-big">🐾</div>
+    <h1>宠物店管理系统</h1>
+    <div class="alert err" th:if="${errMsg != null}" th:text="${errMsg}"></div>
+    <form method="post" th:action="@{/login}">
+      <div class="field">
+        <label>用户名</label>
+        <input type="text" name="username" required autofocus th:value="${username}" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>密码</label>
+        <input type="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn lg" style="width:100%">登 录</button>
+    </form>
+    <p class="small muted mt16" style="text-align:center">首次使用默认账号 admin / 123456，登录后请修改密码</p>
+  </div>
+</div>
+</body>
+</html>

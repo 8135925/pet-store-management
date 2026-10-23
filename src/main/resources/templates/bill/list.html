@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('单据查询')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">单据查询</h1>
+
+      <form class="toolbar" method="get" th:action="@{/bills}">
+        <input type="date" class="input" name="dateFrom" th:value="${dateFrom}">
+        <span class="muted">至</span>
+        <input type="date" class="input" name="dateTo" th:value="${dateTo}">
+        <select name="status">
+          <option value="">全部状态</option>
+          <option value="SETTLED" th:selected="${status == 'SETTLED'}">已结账</option>
+          <option value="CANCELLED" th:selected="${status == 'CANCELLED'}">已反结账</option>
+        </select>
+        <input class="input" type="text" name="keyword" placeholder="单号 / 客户 / 手机号" th:value="${keyword}" style="width:180px">
+        <button class="btn ghost" type="submit">查询</button>
+      </form>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>单号</th><th>类型</th><th>客户</th><th>营业日</th><th>合计</th><th>折扣</th><th>应收</th><th>实收</th><th>方式</th><th>状态</th><th>操作人</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="b : ${pr.rows}" th:classappend="${b.status == 'CANCELLED'} ? 'row-red'">
+                <td class="small" th:text="${b.billNo}"></td>
+                <td th:text="${ui.billType(b.billType)}"></td>
+                <td th:text="${b.customerName}"></td>
+                <td th:text="${b.businessDate}"></td>
+                <td class="num" th:text="${ui.money(b.totalCent)}"></td>
+                <td class="num" th:text="${b.discountCent > 0} ? ${ui.money(b.discountCent)} : '—'"></td>
+                <td class="num" th:text="${ui.money(b.receivableCent)}"></td>
+                <td class="num"><b th:text="${ui.money(b.receivedCent)}"></b></td>
+                <td th:text="${ui.payMethod(b.payMethod)}"></td>
+                <td><span class="badge" th:classappend="${b.status == 'SETTLED'} ? 'ok' : 'danger'"
+                          th:text="${b.status == 'SETTLED'} ? '已结账' : '已反结账'"></span></td>
+                <td class="small" th:text="${b.operator}"></td>
+                <td><a class="btn ghost sm" th:href="@{/bills/{id}(id=${b.id})}">详情</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(pr.rows)}"><td colspan="12" class="muted">没有符合条件的单据</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <nav class="pager" th:replace="fragments/header :: pager(${pr}, '/bills?dateFrom=' + ${dateFrom} + '&dateTo=' + ${dateTo} + '&status=' + ${status} + '&keyword=' + ${keyword})"></nav>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

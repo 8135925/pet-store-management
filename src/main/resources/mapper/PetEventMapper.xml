@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.reminder.PetEventMapper">
+
+    <resultMap id="eventMap" type="com.petshop.module.reminder.PetEvent">
+        <id property="id" column="id"/>
+        <result property="petId" column="pet_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="happenedOn" column="happened_on"/>
+        <result property="nextDueOn" column="next_due_on"/>
+        <result property="hospital" column="hospital"/>
+        <result property="remark" column="remark"/>
+        <result property="contactStatus" column="contact_status"/>
+        <result property="contactedAt" column="contacted_at"/>
+        <result property="contactedBy" column="contacted_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="petName" column="pet_name"/>
+        <result property="species" column="species"/>
+        <result property="breed" column="breed"/>
+        <result property="ownerName" column="owner_name"/>
+        <result property="ownerPhone" column="owner_phone"/>
+        <result property="ownerId" column="owner_id"/>
+    </resultMap>
+
+    <sql id="base">
+        SELECT e.*, p.name AS pet_name, p.species AS species, p.breed AS breed,
+               c.name AS owner_name, c.phone AS owner_phone, c.id AS owner_id
+        FROM pet_event e
+        JOIN pet p ON p.id = e.pet_id
+        JOIN customer c ON c.id = p.owner_id
+    </sql>
+
+    <select id="findById" resultMap="eventMap">
+        <include refid="base"/> WHERE e.id = #{id}
+    </select>
+
+    <select id="findByPet" resultMap="eventMap">
+        <include refid="base"/> WHERE e.pet_id = #{petId} ORDER BY e.happened_on DESC, e.id DESC
+    </select>
+
+    <select id="findPending" resultMap="eventMap">
+        <include refid="base"/>
+        WHERE e.next_due_on IS NOT NULL
+          AND e.contact_status IS NULL
+          AND p.is_active = 1
+          <if test="windowStart != null"> AND e.next_due_on &gt;= #{windowStart} </if>
+          <if test="windowEnd != null"> AND e.next_due_on &lt;= #{windowEnd} </if>
+        ORDER BY e.next_due_on ASC
+    </select>
+
+    <select id="findPendingByCustomer" resultMap="eventMap">
+        <include refid="base"/>
+        WHERE e.next_due_on IS NOT NULL
+          AND e.contact_status IS NULL
+          AND p.is_active = 1
+          AND c.id = #{customerId}
+          AND e.next_due_on &lt;= date('now', '+30 day')
+        ORDER BY e.next_due_on ASC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pet_event(pet_id, event_type, happened_on, next_due_on, hospital, remark,
+                              contact_status, contacted_at, contacted_by, created_at)
+        VALUES (#{petId}, #{eventType}, #{happenedOn}, #{nextDueOn}, #{hospital}, #{remark},
+                #{contactStatus}, #{contactedAt}, #{contactedBy}, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE pet_event SET event_type = #{eventType}, happened_on = #{happenedOn}, next_due_on = #{nextDueOn},
+               hospital = #{hospital}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="markContact">
+        UPDATE pet_event SET contact_status = #{status}, contacted_at = #{contactedAt}, contacted_by = #{contactedBy}
+        WHERE id = #{id}
+    </update>
+</mapper>

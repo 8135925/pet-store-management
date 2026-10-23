@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('页面不存在')"></head>
+<body>
+<div class="login-wrap">
+  <div class="login-box" style="text-align:center">
+    <div class="logo-big">🐾</div>
+    <h1>页面不存在</h1>
+    <p class="muted">您访问的页面不存在或已被移除</p>
+    <a class="btn lg" th:href="@{/}">返回首页</a>
+  </div>
+</div>
+</body>
+</html>

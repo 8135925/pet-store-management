@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' · ' + ${storeName}">宠物店管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/theme.css}">
+  <link rel="icon" th:href="@{/favicon.ico}">
+</head>
+</html>

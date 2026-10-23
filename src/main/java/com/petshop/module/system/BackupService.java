@@ -1,0 +1,123 @@
+package com.petshop.module.system;
+
+import com.petshop.common.BizException;
+import com.petshop.common.ErrorCode;
+import com.petshop.config.AppProps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.regex.Pattern;
+
+/** 备份：每日 03:00 自动 + 手动按钮；VACUUM INTO 生成一致性快照；保留最近 N 份 + 每月 1 号 1 份。 */
+@Service
+public class BackupService {
+
+    private static final Logger log = LoggerFactory.getLogger(BackupService.class);
+    private static final Pattern FILE_PAT = Pattern.compile("pet-\\d{8}-\\d{4,6}\\.db");
+
+    private final AppProps props;
+    private final JdbcTemplate jdbc;
+
+    public BackupService(AppProps props, JdbcTemplate jdbc) {
+        this.props = props;
+        this.jdbc = jdbc;
+    }
+
+    /** 每天凌晨 3 点自动备份 */
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void scheduledBackup() {
+        try {
+            doBackup();
+        } catch (Exception e) {
+            log.error("自动备份失败", e);
+        }
+    }
+
+    /** 手动备份，返回备份文件名 */
+    public String manualBackup() {
+        return doBackup();
+    }
+
+    public List<String> listBackups() {
+        Path dir = Paths.get(props.getBackupDir());
+        List<String> names = new ArrayList<>();
+        if (!Files.isDirectory(dir)) {
+            return names;
+        }
+        try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir, "pet-*.db")) {
+            for (Path p : ds) {
+                if (FILE_PAT.matcher(p.getFileName().toString()).matches()) {
+                    names.add(p.getFileName().toString());
+                }
+            }
+        } catch (IOException e) {
+            log.error("读取备份目录失败", e);
+        }
+        names.sort(Comparator.reverseOrder());
+        return names;
+    }
+
+    private String doBackup() {
+        LocalDateTime now = LocalDateTime.now();
+        // 文件名精确到秒，避免同一分钟内多次备份互相覆盖（VACUUM INTO 不允许覆盖已存在文件）
+        String name = "pet-" + now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".db";
+        Path dir = Paths.get(props.getBackupDir());
+        try {
+            Files.createDirectories(dir);
+            Path target = dir.resolve(name);
+            String path = target.toAbsolutePath().toString().replace("\\", "/");
+            jdbc.execute("VACUUM INTO '" + path + "'");
+            cleanOldBackups(dir);
+            log.info("备份完成：{}", path);
+            return name;
+        } catch (Exception e) {
+            log.error("备份失败：{}", name, e);
+            throw new BizException(ErrorCode.BACKUP_FAILED);
+        }
+    }
+
+    /** 保留最近 backupKeep 份 + 每月 1 号的那份长期保留 */
+    private void cleanOldBackups(Path dir) throws IOException {
+        List<Path> files = new ArrayList<>();
+        try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir, "pet-*.db")) {
+            for (Path p : ds) {
+                if (FILE_PAT.matcher(p.getFileName().toString()).matches()) {
+                    files.add(p);
+                }
+            }
+        }
+        files.sort(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed());
+        int keep = Math.max(props.getBackupKeep(), 1);
+        for (int i = keep; i < files.size(); i++) {
+            String n = files.get(i).getFileName().toString();
+            // 每月 1 号备份长期保留（pet-YYYYMM01-*.db）
+            boolean monthly = n.matches("pet-\\d{6}01-\\d{4,6}\\.db");
+            if (!monthly) {
+                Files.deleteIfExists(files.get(i));
+            }
+        }
+    }
+
+    /** 数据目录绝对路径（启动横幅与排障用） */
+    public String dbPath() {
+        return Paths.get(props.getDataDir(), "pet.db").toAbsolutePath().toString();
+    }
+
+    public LocalDate today() {
+        return LocalDate.now();
+    }
+}

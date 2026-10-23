@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('次卡余额表')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">次卡余额表 <span class="sub">剩余次数实时计算，不落库</span></h1>
+
+      <form class="toolbar" method="get" th:action="@{/cards}">
+        <input class="input" type="text" name="keyword" placeholder="客户名 / 手机号 / 卡号" th:value="${keyword}" style="width:220px">
+        <select name="status">
+          <option value="">全部状态</option>
+          <option value="ACTIVE" th:selected="${status == 'ACTIVE'}">可用</option>
+          <option value="EXPIRED" th:selected="${status == 'EXPIRED'}">已过期</option>
+          <option value="VOID" th:selected="${status == 'VOID'}">已作废</option>
+        </select>
+        <label class="small muted"><input type="checkbox" name="orderByExpire" value="1" th:checked="${orderByExpire == '1'}"> 按到期日升序（催续卡）</label>
+        <button class="btn ghost" type="submit">查询</button>
+      </form>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>卡号</th><th>卡类型</th><th>客户</th><th>总次</th><th>已用</th><th>剩余</th><th>发卡日</th><th>到期日</th><th>状态</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="c : ${cards}">
+                <td class="small" th:text="${c.cardNo}"></td>
+                <td th:text="${c.cardTypeName}"></td>
+                <td><a th:href="@{'/customers/' + ${c.customerId}}" th:text="${c.customerName}"></a>
+                    <span class="muted small" th:text="${c.customerPhone}"></span></td>
+                <td th:text="${c.paidQty + c.giftQty}"></td>
+                <td th:text="${c.usedPaid + c.usedGift}"></td>
+                <td><b th:text="${c.remain()}"></b> 次</td>
+                <td th:text="${c.issuedOn}"></td>
+                <td th:text="${c.expireOn}"></td>
+                <td><span class="badge" th:classappend="${c.status == 'ACTIVE'} ? 'ok' : (${c.status == 'EXPIRED'} ? 'warn' : 'danger')"
+                          th:text="${ui.cardStatus(c.status)}"></span></td>
+                <td><a class="btn ghost sm" th:href="@{/cards/{id}(id=${c.id})}">流水</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(cards)}"><td colspan="10" class="muted">没有符合条件的卡</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

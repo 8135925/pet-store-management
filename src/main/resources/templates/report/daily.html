@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('日营业汇总')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">日营业汇总</h1>
+
+      <form class="toolbar" method="get" th:action="@{/reports/daily}">
+        <input type="date" class="input" name="date" th:value="${date}">
+        <button class="btn ghost" type="submit">查询</button>
+      </form>
+
+      <div class="grid-3">
+        <div class="stat"><div class="label">售卡收入（收款当日确认）</div>
+          <div class="value" th:text="'¥' + ${ui.yuan(sum['cardIncome'])}">¥0.00</div></div>
+        <div class="stat"><div class="label">商品收入</div>
+          <div class="value" th:text="'¥' + ${ui.yuan(sum['productIncome'])}">¥0.00</div></div>
+        <div class="stat"><div class="label">服务收入</div>
+          <div class="value" th:text="'¥' + ${ui.yuan(sum['serviceIncome'])}">¥0.00</div></div>
+      </div>
+
+      <div class="grid-3 mt16">
+        <div class="stat"><div class="label">当日实收合计（三类之和）</div>
+          <div class="value" th:text="'¥' + ${ui.yuan(sum['cardIncome'] + sum['productIncome'] + sum['serviceIncome'])}">¥0.00</div></div>
+        <div class="stat"><div class="label">销售单量</div>
+          <div class="value" th:text="${sum['billCount']}">0</div></div>
+        <div class="stat"><div class="label">核销次数</div>
+          <div class="value" th:text="${sum['consumeTimes']}">0</div></div>
+      </div>
+
+      <div class="card mt16">
+        <div class="card-head"><span>当日单据</span></div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>单号</th><th>类型</th><th>客户</th><th>应收</th><th>实收</th><th>方式</th><th>操作人</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="b : ${bills}">
+                <td class="small" th:text="${b.billNo}"></td>
+                <td th:text="${ui.billType(b.billType)}"></td>
+                <td th:text="${b.customerName}"></td>
+                <td class="num" th:text="${ui.money(b.receivableCent)}"></td>
+                <td class="num"><b th:text="${ui.money(b.receivedCent)}"></b></td>
+                <td th:text="${ui.payMethod(b.payMethod)}"></td>
+                <td class="small" th:text="${b.operator}"></td>
+                <td><a class="btn ghost sm" th:href="@{/bills/{id}(id=${b.id})}">详情</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(bills)}"><td colspan="8" class="muted">该营业日没有已结账单据</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="small muted">按营业日（04:00 切点）统计，凌晨 00:00–03:59 的单据归属前一天。次卡抵扣明细不计入服务收入。</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.bill.BillMapper">
+
+    <resultMap id="billMap" type="com.petshop.module.bill.Bill">
+        <id property="id" column="id"/>
+        <result property="billNo" column="bill_no"/>
+        <result property="billType" column="bill_type"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="petId" column="pet_id"/>
+        <result property="status" column="status"/>
+        <result property="totalCent" column="total_cent"/>
+        <result property="discountCent" column="discount_cent"/>
+        <result property="receivableCent" column="receivable_cent"/>
+        <result property="receivedCent" column="received_cent"/>
+        <result property="payMethod" column="pay_method"/>
+        <result property="businessDate" column="business_date"/>
+        <result property="settledAt" column="settled_at"/>
+        <result property="cancelledAt" column="cancelled_at"/>
+        <result property="cancelReason" column="cancel_reason"/>
+        <result property="requestId" column="request_id"/>
+        <result property="operator" column="operator"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="customerPhone" column="customer_phone"/>
+        <result property="petName" column="pet_name"/>
+    </resultMap>
+
+    <sql id="base">
+        SELECT b.*, c.name AS customer_name, c.phone AS customer_phone, p.name AS pet_name
+        FROM bill b
+        JOIN customer c ON c.id = b.customer_id
+        LEFT JOIN pet p ON p.id = b.pet_id
+    </sql>
+
+    <sql id="cond">
+        <where>
+            <if test="dateFrom != null"> AND b.business_date &gt;= #{dateFrom} </if>
+            <if test="dateTo != null"> AND b.business_date &lt;= #{dateTo} </if>
+            <if test="customerId != null"> AND b.customer_id = #{customerId} </if>
+            <if test="petId != null"> AND (b.pet_id = #{petId} OR EXISTS (SELECT 1 FROM bill_item bi WHERE bi.bill_id = b.id AND bi.pet_id = #{petId})) </if>
+            <if test="keyword != null and keyword != ''">
+                AND (b.bill_no LIKE '%' || #{keyword} || '%' OR c.name LIKE '%' || #{keyword} || '%' OR c.phone LIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null and status != ''"> AND b.status = #{status} </if>
+        </where>
+    </sql>
+
+    <select id="findById" resultMap="billMap">
+        <include refid="base"/> WHERE b.id = #{id}
+    </select>
+
+    <select id="findByRequestId" resultMap="billMap">
+        <include refid="base"/> WHERE b.request_id = #{requestId}
+    </select>
+
+    <select id="search" resultMap="billMap">
+        <include refid="base"/>
+        <include refid="cond"/>
+        ORDER BY b.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*) FROM bill b JOIN customer c ON c.id = b.customer_id
+        <include refid="cond"/>
+    </select>
+
+    <select id="findRecentByCustomer" resultMap="billMap">
+        <include refid="base"/>
+        WHERE b.customer_id = #{customerId} AND b.status != 'OPEN'
+        ORDER BY b.id DESC LIMIT #{limit}
+    </select>
+
+    <select id="findSettledByDate" resultMap="billMap">
+        <include refid="base"/>
+        WHERE b.status = 'SETTLED' AND b.business_date = #{date}
+        ORDER BY b.id DESC
+    </select>
+
+    <select id="countByNoPrefix" resultType="long">
+        SELECT COUNT(*) FROM bill WHERE bill_no LIKE #{prefix} || '%'
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO bill(bill_no, bill_type, customer_id, pet_id, status, total_cent, discount_cent,
+                         receivable_cent, received_cent, pay_method, business_date, settled_at,
+                         cancelled_at, cancel_reason, request_id, operator, remark, created_at)
+        VALUES (#{billNo}, #{billType}, #{customerId}, #{petId}, #{status}, #{totalCent}, #{discountCent},
+                #{receivableCent}, #{receivedCent}, #{payMethod}, #{businessDate}, #{settledAt},
+                #{cancelledAt}, #{cancelReason}, #{requestId}, #{operator}, #{remark}, #{createdAt})
+    </insert>
+
+    <update id="settle">
+        UPDATE bill SET status = 'SETTLED', received_cent = #{receivedCent},
+                        pay_method = #{payMethod}, settled_at = #{settledAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="cancel">
+        UPDATE bill SET status = 'CANCELLED', cancelled_at = #{cancelledAt}, cancel_reason = #{reason}
+        WHERE id = #{id}
+    </update>
+</mapper>

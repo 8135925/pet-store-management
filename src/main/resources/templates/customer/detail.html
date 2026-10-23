@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('客户详情')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+
+      <div class="card">
+        <div class="card-body flex-between">
+          <div>
+            <h1 class="page-title mt0" style="margin-bottom:2px" th:text="${customer.name}"></h1>
+            <div class="muted">
+              📱 <span th:text="${customer.phone}"></span>
+              <span th:if="${customer.source != null}"> · 来源：<span th:text="${customer.source}"></span></span>
+              <span class="badge" th:classappend="${customer.isActive} ? 'ok' : 'muted'"
+                    th:text="${customer.isActive} ? '正常' : '已停用'"></span>
+            </div>
+            <div class="small muted" th:if="${customer.remark != null and !customer.remark.isEmpty()}">📝 <span th:text="${customer.remark}"></span></div>
+          </div>
+          <div class="flex">
+            <a class="btn" th:href="@{/bills/new(customerId=${customer.id})}">🧾 给 TA 开单</a>
+            <a class="btn ghost" th:href="@{/cards/sell(customerId=${customer.id})}">💳 售卡</a>
+            <a class="btn ghost" th:href="@{/customers/{id}/edit(id=${customer.id})}">编辑</a>
+            <form th:if="${session.sessionUser.isAdmin()}" method="post" th:action="@{/customers/{id}/toggle(id=${customer.id})}"
+                  onsubmit="return confirmAct(this.active.value==='true' ? '恢复该客户？' : '停用该客户？停用后不再出现在默认搜索中。')">
+              <input type="hidden" name="active" th:value="${customer.isActive} ? 'false' : 'true'">
+              <button class="btn ghost" th:classappend="${customer.isActive} ? 'danger' : ''"
+                      th:text="${customer.isActive} ? '停用' : '恢复'"></button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 宠物 -->
+      <div class="card">
+        <div class="card-head">
+          <span>🐶 名下宠物（<span th:text="${#lists.size(pets)}"></span>）</span>
+          <button class="btn sm" onclick="document.getElementById('petDialog').showModal()">＋ 添加宠物</button>
+        </div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>昵称</th><th>种类/品种</th><th>性别</th><th>年龄</th><th>体重</th><th>绝育</th><th>体型档</th><th>习性/禁忌</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="p : ${pets}">
+                <td><b th:text="${p.name}"></b> <span class="badge muted" th:if="${!p.isActive}">停用</span></td>
+                <td><span th:text="${ui.species(p.species)}"></span> <span class="muted" th:text="${p.breed}"></span></td>
+                <td th:text="${ui.gender(p.gender)}"></td>
+                <td th:text="${ui.age(p.birthday)}"></td>
+                <td th:text="${ui.kg(p.weightG)}"></td>
+                <td th:text="${p.isNeutered} ? '是' : '否'"></td>
+                <td><span class="badge primary" th:text="${ui.tier(p.sizeTier())}"></span>
+                    <span class="muted small" th:if="${p.weightG == null}">未录体重，按小型计价</span></td>
+                <td class="small" th:text="${p.habit} ?: '—'"></td>
+                <td class="actions">
+                  <button class="btn ghost sm" type="button"
+                          th:attr="data-id=${p.id},data-owner=${p.ownerId},data-name=${p.name},data-species=${p.species},data-gender=${p.gender},data-neutered=${p.isNeutered},data-breed=${p.breed},data-birthday=${p.birthday},data-weight=${p.weightG},data-color=${p.color},data-habit=${p.habit}"
+                          onclick="editPetBtn(this)">编辑</button>
+                  <form th:if="${session.sessionUser.isAdmin() or true}" method="post" th:action="@{/pets/{id}/toggle(id=${p.id})}" style="display:inline"
+                        onsubmit="return confirmAct('停用/恢复该宠物？')">
+                    <input type="hidden" name="active" th:value="${p.isActive} ? 'false' : 'true'">
+                    <input type="hidden" name="ownerId" th:value="${p.ownerId}">
+                    <button class="btn ghost sm" th:text="${p.isActive} ? '停用' : '恢复'"></button>
+                  </form>
+                </td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(pets)}"><td colspan="9" class="muted">还没有宠物，点右上角「添加宠物」</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- 持有卡 -->
+        <div class="card">
+          <div class="card-head"><span>💳 持有次卡</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>卡号</th><th>卡类型</th><th>剩余</th><th>到期日</th><th>状态</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="c : ${cards}">
+                  <td class="small" th:text="${c.cardNo}"></td>
+                  <td th:text="${c.cardTypeName}"></td>
+                  <td><b th:text="${c.remain()}"></b> 次</td>
+                  <td th:text="${c.expireOn}"></td>
+                  <td><span class="badge" th:classappend="${c.status == 'ACTIVE'} ? 'ok' : (${c.status == 'EXPIRED'} ? 'warn' : 'danger')"
+                            th:text="${ui.cardStatus(c.status)}"></span></td>
+                  <td><a class="btn ghost sm" th:href="@{/cards/{id}(id=${c.id})}">流水</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(cards)}"><td colspan="6" class="muted">暂无次卡</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 待办提醒 -->
+        <div class="card">
+          <div class="card-head"><span>💉 待办提醒</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>宠物</th><th>项目</th><th>到期日</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="e : ${reminders}" th:classappend="${e.nextDueOn.isBefore(ui.today())} ? 'row-red'">
+                  <td th:text="${e.petName}"></td>
+                  <td th:text="${ui.eventType(e.eventType)}"></td>
+                  <td>
+                    <span th:text="${e.nextDueOn}"></span>
+                    <span class="badge danger" th:if="${e.nextDueOn.isBefore(ui.today())}"
+                          th:text="'已逾期 ' + ${ui.overdueDays(e.nextDueOn)} + ' 天'"></span>
+                  </td>
+                  <td><a class="btn ghost sm" th:href="@{/reminders}">去处理</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(reminders)}"><td colspan="4" class="muted">暂无待办</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 近 10 单 -->
+      <div class="card">
+        <div class="card-head"><span>🧾 近 10 单</span></div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>单号</th><th>类型</th><th>营业日</th><th>应收</th><th>实收</th><th>方式</th><th>状态</th><th>操作人</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="b : ${bills}">
+                <td class="small" th:text="${b.billNo}"></td>
+                <td th:text="${ui.billType(b.billType)}"></td>
+                <td th:text="${b.businessDate}"></td>
+                <td class="num" th:text="${ui.money(b.receivableCent)}"></td>
+                <td class="num"><b th:text="${ui.money(b.receivedCent)}"></b></td>
+                <td th:text="${ui.payMethod(b.payMethod)}"></td>
+                <td><span class="badge" th:classappend="${b.status == 'SETTLED'} ? 'ok' : 'danger'"
+                          th:text="${b.status == 'SETTLED'} ? '已结账' : '已反结账'"></span></td>
+                <td class="small" th:text="${b.operator}"></td>
+                <td><a class="btn ghost sm" th:href="@{/bills/{id}(id=${b.id})}">详情</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(bills)}"><td colspan="9" class="muted">还没有消费记录</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 宠物建档/编辑弹窗 -->
+<dialog class="modal" id="petDialog">
+  <div class="modal-head"><span id="petDialogTitle">添加宠物</span>
+    <button class="btn ghost sm" type="button" onclick="document.getElementById('petDialog').close()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form method="post" th:action="@{/pets/save}" id="petForm">
+      <input type="hidden" name="id" id="pf_id">
+      <input type="hidden" name="ownerId" th:value="${customer.id}">
+      <div class="form-grid">
+        <div class="field"><label>昵称 *</label><input name="name" id="pf_name" required></div>
+        <div class="field"><label>种类 *</label>
+          <select name="species" id="pf_species">
+            <option value="DOG">狗</option><option value="CAT">猫</option><option value="OTHER">其他</option>
+          </select>
+        </div>
+        <div class="field"><label>品种</label><input name="breed" id="pf_breed" placeholder="金毛 / 泰迪 / 英短…"></div>
+        <div class="field"><label>性别</label>
+          <select name="gender" id="pf_gender">
+            <option value="MALE">公</option><option value="FEMALE">母</option><option value="UNKNOWN">未知</option>
+          </select>
+        </div>
+        <div class="field"><label>生日</label><input type="date" name="birthday" id="pf_birthday">
+          <div class="hint">留空则年龄显示「—」；不能晚于今天</div></div>
+        <div class="field"><label>体重（kg）</label><input name="weightKg" id="pf_weight" placeholder="如 12.5">
+          <div class="hint">决定洗护体型档位计价</div></div>
+        <div class="field"><label>毛色</label><input name="color" id="pf_color"></div>
+        <div class="field"><label>是否绝育</label>
+          <select name="neutered" id="pf_neutered"><option value="">否</option><option value="true">是</option></select>
+        </div>
+        <div class="field full"><label>习性 / 禁忌</label>
+          <textarea name="habit" id="pf_habit" rows="2" placeholder="怕吹风机、会咬人、某浴液过敏…"></textarea></div>
+      </div>
+      <div class="flex mt16">
+        <button class="btn" type="submit">保存</button>
+        <button class="btn ghost" type="button" onclick="document.getElementById('petDialog').close()">取消</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- 免疫记录弹窗 -->
+<dialog class="modal" id="eventDialog">
+  <div class="modal-head"><span>添加免疫 / 驱虫 / 体检记录</span>
+    <button class="btn ghost sm" type="button" onclick="document.getElementById('eventDialog').close()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form method="post" th:action="@{/reminders/save}">
+      <input type="hidden" name="ownerId" th:value="${customer.id}">
+      <div class="form-grid">
+        <div class="field"><label>宠物 *</label>
+          <select name="petId" required>
+            <option th:each="p : ${pets}" th:if="${p.isActive}" th:value="${p.id}"
+                    th:text="${p.name} + '（' + ${ui.species(p.species)} + '）'"></option>
+          </select>
+        </div>
+        <div class="field"><label>类型 *</label>
+          <select name="eventType">
+            <option value="VACCINE">疫苗</option><option value="RABIES">狂犬</option>
+            <option value="DEWORM">驱虫</option><option value="CHECKUP">体检</option>
+          </select>
+        </div>
+        <div class="field"><label>发生日期 *</label><input type="date" name="happenedOn" required th:value="${#dates.format(#dates.createNow(),'yyyy-MM-dd')}"></div>
+        <div class="field"><label>下次到期日</label><input type="date" name="nextDueOn">
+          <div class="hint">留空自动推算：疫苗 +365 天、驱虫 +90 天</div></div>
+        <div class="field full"><label>医院 / 机构</label><input name="hospital"></div>
+        <div class="field full"><label>备注（批号、品牌、不良反应）</label><textarea name="remark" rows="2"></textarea></div>
+      </div>
+      <div class="flex mt16">
+        <button class="btn" type="submit">保存</button>
+        <button class="btn ghost" type="button" onclick="document.getElementById('eventDialog').close()">取消</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- 便捷按钮 -->
+<div class="no-print" style="position:fixed;right:22px;bottom:22px;z-index:50">
+  <button class="btn lg" onclick="document.getElementById('eventDialog').showModal()">💉 记一针</button>
+</div>
+
+<script>
+function editPetBtn(btn) {
+  var d = btn.dataset;
+  editPet(d.id, d.owner, d.name, d.species, d.gender, d.neutered === 'true',
+          d.breed, d.birthday, d.weight ? parseInt(d.weight, 10) : null, d.color, d.habit);
+}
+function editPet(id, ownerId, name, species, gender, neutered, breed, birthday, weightG, color, habit) {
+  document.getElementById('petDialogTitle').textContent = '编辑宠物：' + name;
+  document.getElementById('pf_id').value = id;
+  document.getElementById('pf_name').value = name;
+  document.getElementById('pf_species').value = species || 'DOG';
+  document.getElementById('pf_gender').value = gender || 'UNKNOWN';
+  document.getElementById('pf_neutered').value = neutered ? 'true' : '';
+  document.getElementById('pf_breed').value = breed && breed !== 'null' ? breed : '';
+  document.getElementById('pf_birthday').value = birthday && birthday !== 'null' ? birthday : '';
+  document.getElementById('pf_weight').value = weightG ? (weightG / 1000) : '';
+  document.getElementById('pf_color').value = color && color !== 'null' ? color : '';
+  document.getElementById('pf_habit').value = habit && habit !== 'null' ? habit : '';
+  document.getElementById('petDialog').showModal();
+}
+document.getElementById('petForm').addEventListener('submit', function () {
+  if (document.getElementById('pf_id').value === '') {
+    document.getElementById('pf_id').remove();
+  }
+});
+</script>
+</body>
+</html>

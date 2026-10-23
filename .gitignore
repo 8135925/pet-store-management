@@ -1,0 +1,30 @@
+# ---- 构建产物 ----
+target/
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- 运行期数据（自动生成，不入库）----
+data/
+logs/
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# ---- 系统杂项 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 临时文件 ----
+*.log
+*.tmp
+*.bak
+*~

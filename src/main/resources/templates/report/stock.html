@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('库存预警')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">库存预警</h1>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><span>⏰ 临期商品（30 天内到期）</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>商品</th><th>有效期至</th><th class="num">库存</th></tr></thead>
+              <tbody>
+                <tr th:each="p : ${expiring}">
+                  <td th:text="${p.name}"></td>
+                  <td><span th:text="${p.expireOn}"></span>
+                    <span class="badge danger" th:if="${p.isExpired()}">已过期</span></td>
+                  <td class="num" th:text="${p.stockQty}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(expiring)}"><td colspan="3" class="muted">没有临期商品</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>📉 低库存</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>商品</th><th class="num">库存</th><th class="num">安全库存</th></tr></thead>
+              <tbody>
+                <tr th:each="p : ${lowStock}">
+                  <td th:text="${p.name}"></td>
+                  <td class="num"><b th:text="${p.stockQty}"></b></td>
+                  <td class="num" th:text="${p.safetyQty}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(lowStock)}"><td colspan="3" class="muted">库存充足</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

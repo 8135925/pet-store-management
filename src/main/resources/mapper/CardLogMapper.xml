@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.card.CardLogMapper">
+
+    <resultMap id="consumeMap" type="com.petshop.module.card.CardConsumeLog">
+        <id property="id" column="id"/>
+        <result property="cardId" column="card_id"/>
+        <result property="billId" column="bill_id"/>
+        <result property="billItemId" column="bill_item_id"/>
+        <result property="qty" column="qty"/>
+        <result property="fromGift" column="from_gift"/>
+        <result property="operator" column="operator"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <resultMap id="extendMap" type="com.petshop.module.card.CardExtendLog">
+        <id property="id" column="id"/>
+        <result property="cardId" column="card_id"/>
+        <result property="oldExpireOn" column="old_expire_on"/>
+        <result property="newExpireOn" column="new_expire_on"/>
+        <result property="reason" column="reason"/>
+        <result property="operator" column="operator"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insertConsume" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO card_consume_log(card_id, bill_id, bill_item_id, qty, from_gift, operator, created_at)
+        VALUES (#{cardId}, #{billId}, #{billItemId}, #{qty}, #{fromGift}, #{operator}, #{createdAt})
+    </insert>
+
+    <select id="findConsumeByCard" resultMap="consumeMap">
+        SELECT * FROM card_consume_log WHERE card_id = #{cardId} ORDER BY id DESC
+    </select>
+
+    <select id="findConsumeByBill" resultMap="consumeMap">
+        SELECT * FROM card_consume_log WHERE bill_id = #{billId} ORDER BY id
+    </select>
+
+    <insert id="insertExtend" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO card_extend_log(card_id, old_expire_on, new_expire_on, reason, operator, created_at)
+        VALUES (#{cardId}, #{oldExpireOn}, #{newExpireOn}, #{reason}, #{operator}, #{createdAt})
+    </insert>
+
+    <select id="findExtendByCard" resultMap="extendMap">
+        SELECT * FROM card_extend_log WHERE card_id = #{cardId} ORDER BY id DESC
+    </select>
+</mapper>

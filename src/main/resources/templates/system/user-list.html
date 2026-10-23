@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('用户管理')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">用户管理</h1>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><span>＋ 新增用户</span></div>
+          <div class="card-body">
+            <form method="post" th:action="@{/system/users/save}">
+              <div class="form-grid">
+                <div class="field"><label>登录名 *</label><input name="username" required></div>
+                <div class="field"><label>密码 *（≥6 位）</label><input type="password" name="password" required minlength="6"></div>
+                <div class="field"><label>显示名（写进单据操作人）*</label><input name="displayName" required></div>
+                <div class="field"><label>角色 *</label>
+                  <select name="role"><option value="STAFF">店员</option><option value="ADMIN">管理员</option></select>
+                </div>
+              </div>
+              <input type="hidden" name="active" value="true">
+              <div class="mt16"><button class="btn" type="submit">创建</button></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span>账号列表</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>登录名</th><th>显示名</th><th>角色</th><th>状态</th><th>最近登录</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="u : ${users}">
+                  <td th:text="${u.username}"></td>
+                  <td th:text="${u.displayName}"></td>
+                  <td><span class="badge" th:classappend="${u.role == 'ADMIN'} ? 'primary' : 'muted'" th:text="${u.role == 'ADMIN'} ? '管理员' : '店员'"></span></td>
+                  <td><span class="badge" th:classappend="${u.isActive} ? 'ok' : 'muted'" th:text="${u.isActive} ? '启用' : '停用'"></span></td>
+                  <td class="small muted" th:text="${u.lastLoginAt != null} ? ${ui.dt(u.lastLoginAt)} : '从未'"></td>
+                  <td>
+                    <form method="post" th:action="@{/system/users/save}" class="inline-form">
+                      <input type="hidden" name="id" th:value="${u.id}">
+                      <input type="hidden" name="username" th:value="${u.username}">
+                      <input type="hidden" name="role" th:value="${u.role}">
+                      <input type="hidden" name="active" th:value="${u.isActive} ? 'false' : 'true'">
+                      <input name="displayName" th:value="${u.displayName}" style="width:90px">
+                      <input type="password" name="password" placeholder="新密码" style="width:90px" th:if="${false}">
+                      <button class="btn ghost sm" th:text="${u.isActive} ? '停用' : '启用'"></button>
+                    </form>
+                    <form method="post" th:action="@{/system/users/save}" class="inline-form"
+                          onsubmit="var p=prompt('输入新密码（≥6 位）：'); if(!p || p.length<6) return false; this.password.value=p;">
+                      <input type="hidden" name="id" th:value="${u.id}">
+                      <input type="hidden" name="username" th:value="${u.username}">
+                      <input type="hidden" name="displayName" th:value="${u.displayName}">
+                      <input type="hidden" name="role" th:value="${u.role}">
+                      <input type="hidden" name="active" th:value="${u.isActive}">
+                      <input type="hidden" name="password">
+                      <button class="btn ghost sm">重置密码</button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <p class="small muted">规则：不能停用自己；系统至少保留一个启用状态的管理员。</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

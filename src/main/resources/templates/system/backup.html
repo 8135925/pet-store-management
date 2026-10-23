@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('数据备份')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">数据备份</h1>
+
+      <div class="card" style="max-width:720px">
+        <div class="card-body">
+          <div class="small muted">数据库文件：<b th:text="${dbPath}"></b></div>
+          <div class="small muted mt8">每日 03:00 自动备份（VACUUM INTO 一致性快照），保留最近 7 份 + 每月 1 号 1 份。</div>
+          <form method="post" th:action="@{/system/backup}" class="mt16">
+            <button class="btn lg" type="submit" onclick="this.disabled=true;this.form.submit()">💾 立即手动备份</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:720px">
+        <div class="card-head"><span>备份文件</span></div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>文件名</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr th:each="b : ${backups}">
+                <td><b th:text="${b}"></b></td>
+                <td class="small muted">data/backup/<span th:text="${b}"></span></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(backups)}"><td colspan="2" class="muted">还没有备份，点上方按钮立即备份一次</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

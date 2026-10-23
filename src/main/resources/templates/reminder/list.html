@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('到期提醒')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">到期提醒 <span class="sub">逾期不隐藏，标红排最前 —— 这是本系统最重要的复购功能</span></h1>
+
+      <div class="tabs">
+        <a th:href="@{/reminders?tier=all}" th:classappend="${tier == 'all'} ? 'active'">全部未处理</a>
+        <a th:href="@{/reminders?tier=today}" th:classappend="${tier == 'today'} ? 'active'">今日</a>
+        <a th:href="@{/reminders?tier=7d}" th:classappend="${tier == '7d'} ? 'active'">7 天内</a>
+        <a th:href="@{/reminders?tier=30d}" th:classappend="${tier == '30d'} ? 'active'">30 天内</a>
+      </div>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>到期日</th><th>宠物</th><th>主人 / 电话</th><th>项目</th><th>上次发生</th><th>医院</th><th>标记</th></tr></thead>
+            <tbody>
+              <tr th:each="e : ${items}" th:classappend="${e.nextDueOn.isBefore(today)} ? 'row-red'">
+                <td>
+                  <b th:text="${e.nextDueOn}"></b>
+                  <span class="badge danger" th:if="${e.nextDueOn.isBefore(today)}"
+                        th:text="'已逾期 ' + ${ui.overdueDays(e.nextDueOn)} + ' 天'"></span>
+                  <span class="badge warn" th:if="${e.nextDueOn.equals(today)}">今天</span>
+                </td>
+                <td><b th:text="${e.petName}"></b> <span class="muted small" th:text="${ui.species(e.species)} + ' ' + ${e.breed}"></span></td>
+                <td><a th:href="@{'/customers/' + ${e.ownerId}}" th:text="${e.ownerName}"></a>
+                  <a th:href="'tel:' + ${e.ownerPhone}" class="btn ghost sm" th:text="${e.ownerPhone}"></a></td>
+                <td th:text="${ui.eventType(e.eventType)}"></td>
+                <td th:text="${e.happenedOn}"></td>
+                <td class="small muted" th:text="${e.hospital} ?: '—'"></td>
+                <td>
+                  <div class="actions">
+                    <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline">
+                      <input type="hidden" name="status" value="CONTACTED">
+                      <button class="btn ghost sm" title="已电话/已微信，未成交">📞 已联系</button>
+                    </form>
+                    <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline">
+                      <input type="hidden" name="status" value="BOOKED">
+                      <button class="btn ghost sm">📅 已预约</button>
+                    </form>
+                    <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline">
+                      <input type="hidden" name="status" value="DONE">
+                      <button class="btn ghost sm">✔ 已完成</button>
+                    </form>
+                    <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline"
+                          onsubmit="return confirmAct('确认标记「暂不联系」？记录保留但不再提醒。')">
+                      <input type="hidden" name="status" value="IGNORED">
+                      <button class="btn ghost sm">🚫 暂不联系</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(items)}"><td colspan="7" class="muted">该范围内没有待处理的提醒 🎉</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="small muted">标记后从「待处理」移出，记录保留。不做真实短信 / 微信推送，打电话用页面里的号码。</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

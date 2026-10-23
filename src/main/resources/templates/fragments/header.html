@@ -1,0 +1,28 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<header class="topbar" th:fragment="header">
+  <div class="store-name" th:text="${storeName}">宠物店</div>
+  <div class="user-box">
+    <span>👤</span>
+    <b th:text="${session.sessionUser != null ? session.sessionUser.displayName : ''}">-</b>
+    <span class="badge primary" th:text="${session.sessionUser != null and session.sessionUser.isAdmin()} ? '店主' : '店员'">STAFF</span>
+    <a class="btn ghost sm" th:href="@{/logout}">退出</a>
+  </div>
+</header>
+
+<div th:fragment="flash">
+  <div class="alert ok" th:if="${okMsg != null}" th:text="${okMsg}"></div>
+  <div class="alert err" th:if="${errMsg != null}" th:text="${errMsg}"></div>
+</div>
+
+<nav class="pager" th:fragment="pager(pr, baseUrl)">
+  <span th:text="'共 ' + ${pr.total} + ' 条 / ' + ${pr.pages} + ' 页'">共 0 条</span>
+  <span style="flex:1"></span>
+  <th:block th:if="${pr.page > 1}">
+    <a th:href="${baseUrl} + '&page=' + (${pr.page} - 1)">上一页</a>
+  </th:block>
+  <span class="cur" th:text="${pr.page}">1</span>
+  <th:block th:if="${pr.page < pr.pages}">
+    <a th:href="${baseUrl} + '&page=' + (${pr.page} + 1)">下一页</a>
+  </th:block>
+</nav>
+</html>

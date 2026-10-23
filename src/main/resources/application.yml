@@ -1,0 +1,56 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 8h
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: pet-shop
+  datasource:
+    url: jdbc:sqlite:file:./data/pet.db?journal_mode=WAL&busy_timeout=5000&foreign_keys=on
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
+      connection-timeout: 5000
+      max-lifetime: 0
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema/schema.sql
+      data-locations: classpath:schema/data.sql
+      continue-on-error: false
+  thymeleaf:
+    cache: true
+    encoding: UTF-8
+    mode: HTML
+  mvc:
+    hiddenmethod:
+      filter:
+        enabled: true
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.petshop.module
+  type-handlers-package: com.petshop.handler
+  configuration:
+    map-underscore-to-camel-case: true
+    default-statement-timeout: 10
+    cache-enabled: false
+
+app:
+  data-dir: ./data
+  backup-dir: ./data/backup
+  backup-keep: 7
+  business-day-cutoff-hour: 4
+  default-admin-password: "123456"
+
+logging:
+  config: classpath:logback-spring.xml

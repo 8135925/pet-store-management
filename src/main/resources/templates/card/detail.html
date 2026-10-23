@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('卡详情')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+
+      <div class="card">
+        <div class="card-body flex-between">
+          <div>
+            <h1 class="page-title mt0" style="margin-bottom:2px" th:text="${card.cardNo}"></h1>
+            <div class="muted">
+              <span th:text="${card.cardTypeName}"></span> ·
+              持卡人 <a th:href="@{'/customers/' + ${card.customerId}}" th:text="${card.customerName}"></a>
+              <span class="badge" th:classappend="${card.status == 'ACTIVE'} ? 'ok' : (${card.status == 'EXPIRED'} ? 'warn' : 'danger')"
+                    th:text="${ui.cardStatus(card.status)}"></span>
+            </div>
+          </div>
+          <div class="flex" th:if="${session.sessionUser.isAdmin()}">
+            <button class="btn ghost" onclick="document.getElementById('extendDialog').showModal()"
+                    th:if="${card.status != 'VOID'}">📅 延期</button>
+            <form method="post" th:action="@{/cards/{id}/void(id=${card.id})}" th:if="${card.status != 'VOID'}"
+                  onsubmit="var r=prompt('作废原因（已核销的卡必填）：'); if(r===null) return false; this.reason.value=r;">
+              <input type="hidden" name="reason">
+              <button class="btn danger">🚫 作废</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="stat"><div class="label">总次数（付费+赠）</div>
+          <div class="value" th:text="${card.paidQty} + ' + ' + ${card.giftQty}">10+2</div></div>
+        <div class="stat"><div class="label">已用（付费+赠）</div>
+          <div class="value" th:text="${card.usedPaid} + ' + ' + ${card.usedGift}">0+0</div></div>
+        <div class="stat"><div class="label">剩余次数</div>
+          <div class="value" th:text="${card.remain()}">12</div></div>
+      </div>
+
+      <div class="card mt16">
+        <div class="card-head"><span>发卡信息</span></div>
+        <div class="card-body small">
+          发卡日 <b th:text="${card.issuedOn}"></b> ·
+          到期日 <b th:text="${card.expireOn}"></b> ·
+          实收 <b th:text="${ui.money(card.paidAmountCent)}"></b>
+          <a class="small" th:if="${card.sourceBillId != null}" th:href="@{/bills/{id}(id=${card.sourceBillId})}">（收款单）</a>
+          <span th:if="${card.remark != null}"> · 备注：<span th:text="${card.remark}"></span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span>核销流水（每笔可追溯到订单）</span></div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>时间</th><th>次数</th><th>扣的是</th><th>订单</th><th>操作人</th></tr></thead>
+            <tbody>
+              <tr th:each="l : ${consumeLogs}">
+                <td th:text="${ui.dt(l.createdAt)}"></td>
+                <td th:text="${l.qty}"></td>
+                <td><span class="badge" th:classappend="${l.fromGift} ? 'warn' : 'primary'" th:text="${l.fromGift} ? '赠送次数' : '付费次数'"></span></td>
+                <td><a th:href="@{/bills/{id}(id=${l.billId})}" th:text="'单 #' + ${l.billId}"></a></td>
+                <td th:text="${l.operator}"></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(consumeLogs)}"><td colspan="5" class="muted">还没有核销记录</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" th:if="${!#lists.isEmpty(extendLogs)}">
+        <div class="card-head"><span>延期记录</span></div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>时间</th><th>原到期日</th><th>新到期日</th><th>原因</th><th>操作人</th></tr></thead>
+            <tbody>
+              <tr th:each="l : ${extendLogs}">
+                <td th:text="${ui.dt(l.createdAt)}"></td>
+                <td th:text="${l.oldExpireOn}"></td>
+                <td th:text="${l.newExpireOn}"></td>
+                <td th:text="${l.reason}"></td>
+                <td th:text="${l.operator}"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog class="modal" id="extendDialog">
+  <div class="modal-head"><span>卡延期</span>
+    <button class="btn ghost sm" type="button" onclick="document.getElementById('extendDialog').close()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form method="post" th:action="@{/cards/{id}/extend(id=${card.id})}">
+      <div class="form-grid">
+        <div class="field"><label>当前到期日</label><input class="input" th:value="${card.expireOn}" disabled style="width:auto"></div>
+        <div class="field"><label>新到期日 *</label><input type="date" name="newExpireOn" required th:min="${card.expireOn}"></div>
+        <div class="field full"><label>延期原因 *</label><input name="reason" required placeholder="客户投诉 / 停业补偿…"></div>
+      </div>
+      <div class="flex mt16"><button class="btn" type="submit">确认延期</button></div>
+    </form>
+  </div>
+</dialog>
+</body>
+</html>

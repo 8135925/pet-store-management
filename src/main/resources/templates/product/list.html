@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('商品库存')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">商品库存
+        <a class="btn sm" th:href="@{/products/new}" style="margin-left:auto">＋ 新增商品</a>
+      </h1>
+
+      <div class="tabs">
+        <a th:href="@{/products}" th:classappend="${view == null} ? 'active'">全部</a>
+        <a th:href="@{/products?view=expiring}" th:classappend="${view == 'expiring'} ? 'active'">⏰ 临期预警（<span th:text="${expiringCount}"></span>）</a>
+        <a th:href="@{/products?view=lowstock}" th:classappend="${view == 'lowstock'} ? 'active'">📉 低库存（<span th:text="${lowStockCount}"></span>）</a>
+      </div>
+
+      <div class="alert ok small">
+        库存数以流水为唯一真相，页面不提供直接改库存入口；变更库存请走「入库 / 调整」，每次变动都有流水记录。
+      </div>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>商品</th><th>条码</th><th class="num">售价</th><th class="num">成本</th><th class="num">库存</th><th class="num">安全库存</th><th>有效期</th><th>状态</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="p : ${filtered != null} ? ${filtered} : ${items}">
+                <td><b th:text="${p.name}"></b></td>
+                <td class="small" th:text="${p.barcode} ?: '—'"></td>
+                <td class="num" th:text="${ui.money(p.salePriceCent)}"></td>
+                <td class="num muted" th:text="${ui.money(p.costPriceCent)}"></td>
+                <td class="num"><b th:text="${p.stockQty}"></b>
+                  <span class="badge danger" th:if="${p.isLowStock(3)}">低</span></td>
+                <td class="num" th:text="${p.safetyQty}"></td>
+                <td>
+                  <span th:if="${p.expireOn != null}" th:text="${p.expireOn}"></span>
+                  <span class="badge warn" th:if="${p.isExpiringSoon(30)}">临期</span>
+                  <span class="badge danger" th:if="${p.isExpired()}">已过期</span>
+                  <span class="muted" th:if="${p.expireOn == null}">—</span>
+                </td>
+                <td><span class="badge" th:classappend="${p.isActive} ? 'ok' : 'muted'" th:text="${p.isActive} ? '在售' : '停售'"></span></td>
+                <td class="actions">
+                  <a class="btn ghost sm" th:href="@{/products/{id}/ledger(id=${p.id})}">流水</a>
+                  <a class="btn ghost sm" th:href="@{/products/{id}/edit(id=${p.id})}">编辑</a>
+                  <form method="post" th:action="@{/products/{id}/stock(id=${p.id})}" class="inline-form">
+                    <input type="hidden" name="bizType" value="IN">
+                    <input class="input" type="number" name="qty" min="1" value="1" style="width:64px" title="采购入库数量">
+                    <button class="btn ghost sm" type="submit" title="采购入库">📥 入库</button>
+                  </form>
+                  <form method="post" th:action="@{/products/{id}/toggle(id=${p.id})}" style="display:inline"
+                        onsubmit="return confirmAct('切换商品上下架？')">
+                    <input type="hidden" name="active" th:value="${p.isActive} ? 'false' : 'true'">
+                    <button class="btn ghost sm" th:text="${p.isActive} ? '停售' : '上架'"></button>
+                  </form>
+                </td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(filtered) and #lists.isEmpty(items)}"><td colspan="9" class="muted">暂无商品</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

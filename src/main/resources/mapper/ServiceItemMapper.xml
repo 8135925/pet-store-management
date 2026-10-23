@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.svc.ServiceItemMapper">
+
+    <resultMap id="svcMap" type="com.petshop.module.svc.ServiceItem">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="durationMin" column="duration_min"/>
+        <result property="priceSCent" column="price_s_cent"/>
+        <result property="priceMCent" column="price_m_cent"/>
+        <result property="priceLCent" column="price_l_cent"/>
+        <result property="priceXLCent" column="price_xl_cent"/>
+        <result property="sortNo" column="sort_no"/>
+        <result property="isActive" column="is_active"/>
+    </resultMap>
+
+    <select id="findById" resultMap="svcMap">
+        SELECT * FROM service_item WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="svcMap">
+        SELECT * FROM service_item ORDER BY sort_no, id
+    </select>
+
+    <select id="findActive" resultMap="svcMap">
+        SELECT * FROM service_item WHERE is_active = 1 ORDER BY sort_no, id
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO service_item(name, duration_min, price_s_cent, price_m_cent, price_l_cent,
+                                 price_xl_cent, sort_no, is_active)
+        VALUES (#{name}, #{durationMin}, #{priceSCent}, #{priceMCent}, #{priceLCent},
+                #{priceXLCent}, #{sortNo}, #{isActive})
+    </insert>
+
+    <update id="update">
+        UPDATE service_item SET name = #{name}, duration_min = #{durationMin},
+               price_s_cent = #{priceSCent}, price_m_cent = #{priceMCent},
+               price_l_cent = #{priceLCent}, price_xl_cent = #{priceXLCent},
+               sort_no = #{sortNo}, is_active = #{isActive}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setActive">
+        UPDATE service_item SET is_active = #{active} WHERE id = #{id}
+    </update>
+</mapper>

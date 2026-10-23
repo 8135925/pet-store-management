@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('商品档案')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title" th:text="${product.id == null} ? '新增商品' : '编辑商品'"></h1>
+
+      <div class="card" style="max-width:640px">
+        <div class="card-body">
+          <form method="post" th:action="@{/products/save}">
+            <input type="hidden" name="id" th:value="${product.id}">
+            <div class="form-grid">
+              <div class="field full"><label>名称（含规格）*</label>
+                <input name="name" required placeholder="皇家A3 幼犬粮 2kg" th:value="${product.name}">
+                <div class="hint">规格写进名称，否则库存没法区分</div>
+              </div>
+              <div class="field"><label>条码</label><input name="barcode" th:value="${product.barcode}"></div>
+              <div class="field"><label>售价（元）*</label><input name="salePrice" required th:value="${product.id == null} ? '' : ${ui.yuan(product.salePriceCent)}"></div>
+              <div class="field"><label>成本价（元）</label><input name="costPrice" th:value="${product.id == null} ? '' : ${ui.yuan(product.costPriceCent)}"></div>
+              <div class="field"><label>安全库存</label><input type="number" name="safetyQty" min="0" th:value="${product.safetyQty} ?: '0'">
+                <div class="hint">低于此值进低库存预警；0 = 用全局阈值</div>
+              </div>
+              <div class="field"><label>有效期至</label><input type="date" name="expireOn" th:value="${product.expireOn}"></div>
+            </div>
+            <div class="mt16 alert err small" th:if="${product.id != null}">
+              注意：库存数在此处不可修改，变更库存请走「入库 / 调整」以保证流水一致。
+            </div>
+            <div class="flex mt16">
+              <button class="btn lg" type="submit">保存</button>
+              <a class="btn ghost lg" th:href="@{/products}">取消</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

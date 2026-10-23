@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.system.StoreConfigMapper">
+
+    <select id="findValue" resultType="string">
+        SELECT v FROM store_config WHERE k = #{k}
+    </select>
+
+    <select id="findAll" resultType="map">
+        SELECT k, v FROM store_config ORDER BY k
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO store_config(k, v) VALUES (#{k}, #{v})
+        ON CONFLICT(k) DO UPDATE SET v = excluded.v
+    </insert>
+</mapper>

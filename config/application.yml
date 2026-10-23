@@ -1,0 +1,8 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 8h
+
+# 门店可自行修改端口：改上面的 port，然后重启程序
+# 数据目录固定在程序目录下的 data/，日志在 logs/

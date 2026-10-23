@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('卡类型')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">卡类型维护 <span class="sub">改这里不影响已售出的卡</span></h1>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><span>＋ 新增卡类型</span></div>
+          <div class="card-body">
+            <form method="post" th:action="@{/card-types/save}">
+              <div class="form-grid">
+                <div class="field full"><label>卡名称 *</label><input name="name" required placeholder="洗护10次卡（送2次）"></div>
+                <div class="field"><label>付费次数 *</label><input type="number" name="paidQty" required min="1" value="10"></div>
+                <div class="field"><label>赠送次数</label><input type="number" name="giftQty" value="0" min="0"></div>
+                <div class="field"><label>售价（元）*</label><input name="priceYuan" required placeholder="1200"></div>
+                <div class="field"><label>有效天数 *</label><input type="number" name="validDays" value="365" min="1"></div>
+                <div class="field full"><label>适用服务（可多选，留空则核销时校验不匹配会被拒）</label>
+                  <div class="flex">
+                    <label class="small" th:each="s : ${services}" style="margin-right:10px">
+                      <input type="checkbox" name="serviceIds" th:value="${s.id}"> <span th:text="${s.name}"></span>
+                    </label>
+                  </div>
+                  <div class="hint">不勾选 = 不限服务</div>
+                </div>
+              </div>
+              <div class="mt16"><button class="btn" type="submit">保存</button></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span>已配置卡类型</span></div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>名称</th><th>付费+赠</th><th>售价</th><th>有效天数</th><th>适用服务</th><th>状态</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="t : ${types}">
+                  <td><b th:text="${t.name}"></b></td>
+                  <td><span th:text="${t.paidQty}"></span>+<span th:text="${t.giftQty}"></span> 次</td>
+                  <td class="num" th:text="${ui.money(t.priceCent)}"></td>
+                  <td th:text="${t.validDays} + ' 天'"></td>
+                  <td class="small" th:text="${t.serviceIds == null or t.serviceIds.isEmpty()} ? '不限' : ${t.serviceNames}"></td>
+                  <td><span class="badge" th:classappend="${t.isActive} ? 'ok' : 'muted'" th:text="${t.isActive} ? '在售' : '停售'"></span></td>
+                  <td>
+                    <form method="post" th:action="@{/card-types/{id}/toggle(id=${t.id})}" style="display:inline"
+                          onsubmit="return confirmAct('确认切换该卡类型上下架状态？')">
+                      <input type="hidden" name="active" th:value="${t.isActive} ? 'false' : 'true'">
+                      <button class="btn ghost sm" th:text="${t.isActive} ? '停售' : '上架'"></button>
+                    </form>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(types)}"><td colspan="7" class="muted">还没有卡类型</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

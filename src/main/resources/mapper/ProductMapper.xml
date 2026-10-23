@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.product.ProductMapper">
+
+    <resultMap id="prodMap" type="com.petshop.module.product.Product">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="barcode" column="barcode"/>
+        <result property="salePriceCent" column="sale_price_cent"/>
+        <result property="costPriceCent" column="cost_price_cent"/>
+        <result property="stockQty" column="stock_qty"/>
+        <result property="safetyQty" column="safety_qty"/>
+        <result property="expireOn" column="expire_on"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="prodMap">
+        SELECT * FROM product WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="prodMap">
+        SELECT * FROM product ORDER BY id DESC
+    </select>
+
+    <select id="findActive" resultMap="prodMap">
+        SELECT * FROM product WHERE is_active = 1 ORDER BY name
+    </select>
+
+    <select id="findExpiring" resultMap="prodMap">
+        SELECT * FROM product
+        WHERE expire_on IS NOT NULL AND expire_on &gt;= #{today} AND expire_on &lt;= date(#{today}, '+' || #{days} || ' day')
+        ORDER BY expire_on
+    </select>
+
+    <select id="findLowStock" resultMap="prodMap">
+        SELECT * FROM product
+        WHERE is_active = 1 AND ((safety_qty &gt; 0 AND stock_qty &lt;= safety_qty) OR (safety_qty = 0 AND stock_qty &lt;= #{globalWarn}))
+        ORDER BY stock_qty
+    </select>
+
+    <select id="countLowStock" resultType="long">
+        SELECT COUNT(*) FROM product
+        WHERE is_active = 1 AND ((safety_qty &gt; 0 AND stock_qty &lt;= safety_qty) OR (safety_qty = 0 AND stock_qty &lt;= #{globalWarn}))
+    </select>
+
+    <select id="countExpiring" resultType="long">
+        SELECT COUNT(*) FROM product
+        WHERE expire_on IS NOT NULL AND expire_on &gt;= #{today} AND expire_on &lt;= date(#{today}, '+' || #{days} || ' day')
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO product(name, barcode, sale_price_cent, cost_price_cent, stock_qty, safety_qty,
+                            expire_on, is_active, created_at)
+        VALUES (#{name}, #{barcode}, #{salePriceCent}, #{costPriceCent}, #{stockQty}, #{safetyQty},
+                #{expireOn}, #{isActive}, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE product SET name = #{name}, barcode = #{barcode}, sale_price_cent = #{salePriceCent},
+               cost_price_cent = #{costPriceCent}, safety_qty = #{safetyQty}, expire_on = #{expireOn},
+               is_active = #{isActive}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setActive">
+        UPDATE product SET is_active = #{active} WHERE id = #{id}
+    </update>
+
+    <update id="deductStock">
+        UPDATE product SET stock_qty = stock_qty - #{qty}
+        WHERE id = #{id} AND stock_qty &gt;= #{qty}
+    </update>
+
+    <update id="addStock">
+        UPDATE product SET stock_qty = stock_qty + #{qty} WHERE id = #{id}
+    </update>
+</mapper>

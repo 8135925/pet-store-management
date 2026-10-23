@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('宠物档案')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">宠物档案 <span class="sub">一人多宠，宠物挂在主人名下</span></h1>
+
+      <form class="toolbar" method="get" th:action="@{/pets}">
+        <input class="input" type="text" name="keyword" placeholder="宠物名 / 主人名 / 手机号" th:value="${keyword}" style="width:240px">
+        <button class="btn ghost" type="submit">搜索</button>
+      </form>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>昵称</th><th>种类/品种</th><th>主人</th><th>年龄</th><th>体重</th><th>体型档</th><th>状态</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="p : ${pr.rows}">
+                <td><b th:text="${p.name}"></b></td>
+                <td><span th:text="${ui.species(p.species)}"></span> <span class="muted" th:text="${p.breed}"></span></td>
+                <td><a th:href="@{'/customers/' + ${p.ownerId}}" th:text="${p.ownerName}"></a></td>
+                <td th:text="${ui.age(p.birthday)}"></td>
+                <td th:text="${ui.kg(p.weightG)}"></td>
+                <td><span class="badge primary" th:text="${ui.tier(p.sizeTier())}"></span></td>
+                <td><span class="badge" th:classappend="${p.isActive} ? 'ok' : 'muted'" th:text="${p.isActive} ? '在册' : '停用'"></span></td>
+                <td><a class="btn ghost sm" th:href="@{'/customers/' + ${p.ownerId}}">去档案</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(pr.rows)}"><td colspan="8" class="muted">没有找到宠物</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <nav class="pager" th:replace="fragments/header :: pager(${pr}, '/pets?keyword=' + ${keyword})"></nav>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.bill.BillItemMapper">
+
+    <resultMap id="itemMap" type="com.petshop.module.bill.BillItem">
+        <id property="id" column="id"/>
+        <result property="billId" column="bill_id"/>
+        <result property="itemType" column="item_type"/>
+        <result property="refId" column="ref_id"/>
+        <result property="nameSnapshot" column="name_snapshot"/>
+        <result property="sizeTier" column="size_tier"/>
+        <result property="petId" column="pet_id"/>
+        <result property="qty" column="qty"/>
+        <result property="unitPriceCent" column="unit_price_cent"/>
+        <result property="amountCent" column="amount_cent"/>
+        <result property="discountCent" column="discount_cent"/>
+        <result property="paidByCard" column="paid_by_card"/>
+        <result property="cardId" column="card_id"/>
+        <result property="sortNo" column="sort_no"/>
+        <result property="petName" column="pet_name"/>
+        <result property="cardNo" column="card_no"/>
+    </resultMap>
+
+    <select id="findByBill" resultMap="itemMap">
+        SELECT i.*, p.name AS pet_name, cc.card_no AS card_no
+        FROM bill_item i
+        LEFT JOIN pet p ON p.id = i.pet_id
+        LEFT JOIN customer_card cc ON cc.id = i.card_id
+        WHERE i.bill_id = #{billId}
+        ORDER BY i.sort_no, i.id
+    </select>
+
+    <select id="findProductsByBill" resultMap="itemMap">
+        SELECT i.*, p.name AS pet_name, cc.card_no AS card_no
+        FROM bill_item i
+        LEFT JOIN pet p ON p.id = i.pet_id
+        LEFT JOIN customer_card cc ON cc.id = i.card_id
+        WHERE i.bill_id = #{billId} AND i.item_type = 'PRODUCT'
+        ORDER BY i.sort_no, i.id
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO bill_item(bill_id, item_type, ref_id, name_snapshot, size_tier, pet_id, qty,
+                              unit_price_cent, amount_cent, discount_cent, paid_by_card, card_id, sort_no)
+        VALUES (#{billId}, #{itemType}, #{refId}, #{nameSnapshot}, #{sizeTier}, #{petId}, #{qty},
+                #{unitPriceCent}, #{amountCent}, #{discountCent}, #{paidByCard}, #{cardId}, #{sortNo})
+    </insert>
+</mapper>

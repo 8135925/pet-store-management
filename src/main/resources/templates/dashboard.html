@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('首页看板')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+
+      <h1 class="page-title">今日看板 <span class="sub" th:text="${#dates.format(#dates.createNow(),'yyyy-MM-dd EEEE')}"></span></h1>
+
+      <div class="grid-6">
+        <a class="stat" th:href="@{/reports/daily}">
+          <div class="label">今日单量</div>
+          <div class="value" th:text="${d['billCount']}">0</div>
+        </a>
+        <a class="stat" th:href="@{/reports/daily}">
+          <div class="label">今日营收（商品+服务）</div>
+          <div class="value" th:text="'¥' + ${ui.yuan(d['todayIncome'])}">¥0.00</div>
+        </a>
+        <a class="stat" th:href="@{/reports/daily}">
+          <div class="label">今日售卡额</div>
+          <div class="value" th:text="'¥' + ${ui.yuan(d['cardIncome'])}">¥0.00</div>
+        </a>
+        <a class="stat" th:href="@{/reminders}">
+          <div class="label">待提醒（30 天内）</div>
+          <div class="value" th:text="${d['remindCount']}">0</div>
+        </a>
+        <a class="stat" th:href="@{/products?view=expiring}">
+          <div class="label">临期商品（30 天）</div>
+          <div class="value" th:text="${d['expiringCount']}">0</div>
+        </a>
+        <a class="stat" th:href="@{/products?view=lowstock}">
+          <div class="label">低库存</div>
+          <div class="value" th:text="${d['lowStockCount']}">0</div>
+        </a>
+      </div>
+
+      <div class="grid-2 mt16">
+        <div class="card">
+          <div class="card-head">
+            <span>💉 待办提醒（最近 8 条）</span>
+            <a class="btn ghost sm" th:href="@{/reminders}">查看全部</a>
+          </div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>宠物</th><th>主人</th><th>项目</th><th>到期日</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="e : ${reminders}" th:classappend="${e.nextDueOn.isBefore(today)} ? 'row-red'">
+                  <td th:text="${e.petName}">豆豆</td>
+                  <td>
+                    <span th:text="${e.ownerName}"></span>
+                    <a class="small" th:href="@{'/customers/' + ${e.ownerId}}">档案</a>
+                  </td>
+                  <td th:text="${ui.eventType(e.eventType)}">疫苗</td>
+                  <td>
+                    <span th:text="${e.nextDueOn}"></span>
+                    <span class="badge danger" th:if="${e.nextDueOn.isBefore(today)}"
+                          th:text="'已逾期 ' + ${ui.overdueDays(e.nextDueOn)} + ' 天'"></span>
+                  </td>
+                  <td class="num"><a th:href="'tel:' + ${e.ownerPhone}" class="btn ghost sm">打电话</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(reminders)}"><td colspan="5" class="muted">暂无待办提醒</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span>⚡ 快捷操作</span></div>
+          <div class="card-body">
+            <div class="flex" style="gap:10px">
+              <a class="btn" th:href="@{/bills/new}">开单收银</a>
+              <a class="btn ghost" th:href="@{/customers/new}">客户建档</a>
+              <a class="btn ghost" th:href="@{/cards/sell}">售卡</a>
+              <a class="btn ghost" th:href="@{/products/new}">商品入库</a>
+            </div>
+            <div class="mt16 muted small">
+              提示：凌晨 00:00–03:59 的单据自动归属前一个营业日（04:00 切点）。
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

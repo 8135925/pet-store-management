@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.product.ProductLedgerMapper">
+
+    <resultMap id="ledgerMap" type="com.petshop.module.product.ProductLedger">
+        <id property="id" column="id"/>
+        <result property="productId" column="product_id"/>
+        <result property="bizType" column="biz_type"/>
+        <result property="qtyChange" column="qty_change"/>
+        <result property="beforeQty" column="before_qty"/>
+        <result property="afterQty" column="after_qty"/>
+        <result property="refType" column="ref_type"/>
+        <result property="refId" column="ref_id"/>
+        <result property="operator" column="operator"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="productName" column="product_name"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO product_ledger(product_id, biz_type, qty_change, before_qty, after_qty,
+                                   ref_type, ref_id, operator, remark, created_at)
+        VALUES (#{productId}, #{bizType}, #{qtyChange}, #{beforeQty}, #{afterQty},
+                #{refType}, #{refId}, #{operator}, #{remark}, #{createdAt})
+    </insert>
+
+    <select id="findByProduct" resultMap="ledgerMap">
+        SELECT l.*, p.name AS product_name
+        FROM product_ledger l JOIN product p ON p.id = l.product_id
+        WHERE l.product_id = #{productId}
+        ORDER BY l.id DESC
+    </select>
+
+    <select id="findRecent" resultMap="ledgerMap">
+        SELECT l.*, p.name AS product_name
+        FROM product_ledger l JOIN product p ON p.id = l.product_id
+        ORDER BY l.id DESC LIMIT #{limit}
+    </select>
+</mapper>

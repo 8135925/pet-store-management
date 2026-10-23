@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('客户列表')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">客户档案
+        <a class="btn sm" th:href="@{/customers/new}" style="margin-left:auto">＋ 客户建档</a>
+      </h1>
+
+      <form class="toolbar" method="get" th:action="@{/customers}">
+        <input class="input" type="text" name="keyword" placeholder="姓名 / 手机号" th:value="${keyword}" style="width:220px">
+        <label class="small muted"><input type="checkbox" name="includeInactive" value="true" th:checked="${includeInactive}"> 显示已停用</label>
+        <button class="btn ghost" type="submit">搜索</button>
+      </form>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>姓名</th><th>手机号</th><th>来源</th><th>宠物</th><th>状态</th><th>建档时间</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="c : ${pr.rows}">
+                <td th:text="${c.id}"></td>
+                <td><a th:href="@{'/customers/' + ${c.id}}"><b th:text="${c.name}"></b></a></td>
+                <td th:text="${c.phone}"></td>
+                <td th:text="${c.source} ?: '—'"></td>
+                <td th:text="${c.petCount}"></td>
+                <td><span class="badge" th:classappend="${c.isActive} ? 'ok' : 'muted'" th:text="${c.isActive} ? '正常' : '已停用'"></span></td>
+                <td class="muted small" th:text="${ui.dt(c.createdAt)}"></td>
+                <td><a class="btn ghost sm" th:href="@{'/customers/' + ${c.id}}">详情</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(pr.rows)}"><td colspan="8" class="muted">没有找到客户，输入手机号或姓名搜索，或点击右上角建档</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <nav class="pager" th:replace="fragments/header :: pager(${pr}, '/customers?keyword=' + ${keyword} + '&includeInactive=' + ${includeInactive})"></nav>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

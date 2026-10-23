@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.customer.PetMapper">
+
+    <resultMap id="petMap" type="com.petshop.module.customer.Pet">
+        <id property="id" column="id"/>
+        <result property="ownerId" column="owner_id"/>
+        <result property="name" column="name"/>
+        <result property="species" column="species"/>
+        <result property="breed" column="breed"/>
+        <result property="gender" column="gender"/>
+        <result property="birthday" column="birthday"/>
+        <result property="weightG" column="weight_g"/>
+        <result property="isNeutered" column="is_neutered"/>
+        <result property="color" column="color"/>
+        <result property="habit" column="habit"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="ownerName" column="owner_name"/>
+        <result property="ownerPhone" column="owner_phone"/>
+    </resultMap>
+
+    <select id="findById" resultMap="petMap">
+        SELECT * FROM pet WHERE id = #{id}
+    </select>
+
+    <select id="findByOwner" resultMap="petMap">
+        SELECT * FROM pet WHERE owner_id = #{ownerId} ORDER BY is_active DESC, id DESC
+    </select>
+
+    <select id="listActiveWithOwner" resultMap="petMap">
+        SELECT p.*, c.name AS owner_name, c.phone AS owner_phone
+        FROM pet p JOIN customer c ON c.id = p.owner_id
+        WHERE p.is_active = 1 AND c.is_active = 1
+        ORDER BY p.id DESC
+    </select>
+
+    <select id="search" resultMap="petMap">
+        SELECT p.*, c.name AS owner_name, c.phone AS owner_phone
+        FROM pet p JOIN customer c ON c.id = p.owner_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (p.name LIKE '%' || #{keyword} || '%' OR c.name LIKE '%' || #{keyword} || '%' OR c.phone LIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+        ORDER BY p.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*) FROM pet p JOIN customer c ON c.id = p.owner_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (p.name LIKE '%' || #{keyword} || '%' OR c.name LIKE '%' || #{keyword} || '%' OR c.phone LIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pet(owner_id, name, species, breed, gender, birthday, weight_g,
+                        is_neutered, color, habit, is_active, created_at)
+        VALUES (#{ownerId}, #{name}, #{species}, #{breed}, #{gender}, #{birthday}, #{weightG},
+                #{isNeutered}, #{color}, #{habit}, 1, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE pet SET owner_id = #{ownerId}, name = #{name}, species = #{species}, breed = #{breed},
+                       gender = #{gender}, birthday = #{birthday}, weight_g = #{weightG},
+                       is_neutered = #{isNeutered}, color = #{color}, habit = #{habit}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setActive">
+        UPDATE pet SET is_active = #{active} WHERE id = #{id}
+    </update>
+</mapper>
