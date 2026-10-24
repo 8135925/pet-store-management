@@ -1,0 +1,77 @@
+========================================
+  宠物店管理系统 使用说明
+  版本：${project.version}
+========================================
+
+一、环境要求
+----------------------------------------
+✅ 已内置 JRE 8，无需额外安装 Java 环境
+✅ Windows 系统：内置 Windows x64 JRE
+✅ Linux 系统：内置 Linux x64 和 ARM64 JRE
+
+二、Windows 系统使用方法
+----------------------------------------
+
+1. 启动应用
+   - 双击运行 start.bat
+   - 启动后自动打开浏览器访问：http://localhost:8080
+
+2. 关闭应用
+   - 在启动窗口中按 Ctrl+C 停止应用，或直接关闭窗口
+
+3. 默认账号
+   - admin（初始密码见 config/application.yml 的 app.default-admin-password）
+   - 登录后请立即修改密码
+
+三、Linux 系统使用方法
+----------------------------------------
+
+1. 启动应用（后台运行）
+   - 执行命令：chmod +x start.sh stop.sh && ./start.sh
+   - 脚本自动识别 x64 / ARM64 架构并选用内置 JRE
+
+2. 停止应用
+   - 执行命令：./stop.sh（10 秒未退出自动强制终止）
+
+3. 查看状态
+   - 查看进程：ps -ef | grep pet-shop
+   - 查看日志：tail -f logs/console.log
+
+四、目录结构说明
+----------------------------------------
+
+pet-shop_${project.version}_Bin/
+├── jdk/                       # 内置 JRE（无需额外安装）
+│   ├── windows/               # Windows x64
+│   ├── linux-x64/             # Linux x64
+│   └── linux-arm64/           # Linux ARM64
+├── config/
+│   └── application.yml        # 外置配置文件（端口/数据库/默认密码等）
+├── data/
+│   ├── pet.db                 # SQLite 数据库（自动生成）
+│   └── backup/                # 自动备份目录（每日 03:00）
+├── logs/                      # 运行日志
+├── start.bat                  # Windows 启动脚本
+├── start.sh                   # Linux 启动脚本
+├── stop.sh                    # Linux 停止脚本
+└── pet-shop.jar               # 应用主程序
+
+五、常见问题
+----------------------------------------
+
+Q1: 启动失败，提示端口被占用？
+A1: 修改 config/application.yml 中 server.port 后重启。
+
+Q2: 数据放在哪里？如何备份？
+A2: 数据库为 data/pet.db（SQLite 单文件）。系统每日 03:00 自动备份到
+    data/backup 并保留最近 7 份；也可登录后在「数据备份」页手动备份。
+
+Q3: 忘记管理员密码？
+A3: 编辑 config/application.yml 的 app.default-admin-password 后，删除
+    data/pet.db 前请先备份；更简单的方式是由另一管理员账号在「用户管理」
+    里重置密码。
+
+Q4: 如何修改门店名称？
+A4: 管理员登录 → 侧栏「门店参数」。
+
+========================================

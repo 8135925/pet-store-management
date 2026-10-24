@@ -1,0 +1,76 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.0 http://maven.apache.org/assembly-2.1.0.xsd">
+    <id>bin</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>pet-shop_${project.version}_Bin</baseDirectory>
+
+    <fileSets>
+        <!-- 内置 JDK：Windows x64 / Linux x64 / Linux ARM64，解压即用，无需安装 Java -->
+        <fileSet>
+            <directory>assembly/OpenJDK8U-jdk_x64_windows_hotspot_8u492b09/jre</directory>
+            <outputDirectory>jdk/windows</outputDirectory>
+        </fileSet>
+
+        <fileSet>
+            <directory>assembly/OpenJDK8U-jdk_x64_linux_hotspot_8u392b08/jdk8u392-b08/jre</directory>
+            <outputDirectory>jdk/linux-x64</outputDirectory>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+
+        <fileSet>
+            <directory>assembly/OpenJDK8U-jdk_aarch64_linux_hotspot_8u392b08/jdk8u392-b08/jre</directory>
+            <outputDirectory>jdk/linux-arm64</outputDirectory>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+
+        <fileSet>
+            <directory>assembly/bin</directory>
+            <outputDirectory>/</outputDirectory>
+            <filtered>true</filtered>
+            <includes>
+                <include>start.bat</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>assembly/bin</directory>
+            <outputDirectory>/</outputDirectory>
+            <filtered>true</filtered>
+            <includes>
+                <include>start.sh</include>
+                <include>stop.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+
+        <!-- 外置配置：解压后可直接改 config/application.yml -->
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>config</outputDirectory>
+            <includes>
+                <include>application.yml</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>assembly</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>使用说明.txt</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+
+    <files>
+        <file>
+            <source>target/${project.build.finalName}.jar</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+    </files>
+</assembly>

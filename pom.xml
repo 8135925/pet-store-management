@@ -74,6 +74,28 @@
           <mainClass>com.petshop.PetShopApplication</mainClass>
         </configuration>
       </plugin>
+      <!-- 打免安装部署包：应用 jar + 三平台内置 JRE + 启停脚本 + 外置配置，产出 target/pet-shop_${version}_Bin.zip -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <finalName>pet-shop_${project.version}_Bin</finalName>
+          <appendAssemblyId>false</appendAssemblyId>
+          <descriptors>
+            <descriptor>assembly/assembly.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Map;
 
 @Controller
@@ -40,13 +41,19 @@ public class BoardingController {
         model.addAttribute("inHouse", b.get("inHouse"));
         model.addAttribute("todayArrivals", b.get("todayArrivals"));
         model.addAttribute("todayDue", b.get("todayDue"));
+        // 历史查询日期默认为本月 1 号至本月最后一天
+        LocalDate today = LocalDate.now();
+        String from = (dateFrom == null || dateFrom.trim().isEmpty())
+                ? today.withDayOfMonth(1).toString() : dateFrom.trim();
+        String to = (dateTo == null || dateTo.trim().isEmpty())
+                ? YearMonth.now().atEndOfMonth().toString() : dateTo.trim();
         if ("history".equals(view)) {
-            model.addAttribute("his", service.search(keyword, dateFrom, dateTo, page, 20));
+            model.addAttribute("his", service.search(keyword, from, to, page, 20));
         }
         model.addAttribute("view", view);
         model.addAttribute("keyword", keyword);
-        model.addAttribute("dateFrom", dateFrom);
-        model.addAttribute("dateTo", dateTo);
+        model.addAttribute("dateFrom", from);
+        model.addAttribute("dateTo", to);
         return "boarding/board";
     }
 
