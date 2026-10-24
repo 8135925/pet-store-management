@@ -1,5 +1,7 @@
 package com.petshop.module.card;
 
+import com.petshop.common.BizException;
+import com.petshop.common.ErrorCode;
 import com.petshop.common.SessionUser;
 import com.petshop.module.customer.Customer;
 import com.petshop.module.customer.CustomerMapper;
@@ -89,9 +91,17 @@ public class CardController {
     }
 
     @PostMapping("/cards/sell")
-    public String sell(@RequestParam Long customerId, @RequestParam Long cardTypeId,
-                       @RequestParam String receivedYuan, @RequestParam String payMethod,
+    public String sell(@RequestParam(required = false) Long customerId,
+                       @RequestParam(required = false) Long cardTypeId,
+                       @RequestParam(required = false) String receivedYuan,
+                       @RequestParam(defaultValue = "CASH") String payMethod,
                        HttpSession session, RedirectAttributes ra) {
+        if (customerId == null) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "请选择客户");
+        }
+        if (cardTypeId == null) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "请选择卡类型");
+        }
         SessionUser user = (SessionUser) session.getAttribute("sessionUser");
         Long cardId = service.sell(customerId, cardTypeId, receivedYuan, payMethod, user);
         ra.addFlashAttribute("okMsg", "售卡成功");

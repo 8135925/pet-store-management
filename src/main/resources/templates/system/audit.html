@@ -32,7 +32,7 @@
             </thead>
             <tbody>
             <tr th:each="r : ${rows}">
-              <td class="small" th:text="${r['created_at']}"></td>
+              <td class="small nw" th:text="${r['created_at']}"></td>
               <td>
                 <span class="badge primary"
                       th:text="${actions.containsKey(r['action']) ? actions.get(r['action']) : r['action']}"></span>

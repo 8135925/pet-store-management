@@ -30,7 +30,7 @@
                 <td th:text="${c.source} ?: '—'"></td>
                 <td th:text="${c.petCount}"></td>
                 <td><span class="badge" th:classappend="${c.isActive} ? 'ok' : 'muted'" th:text="${c.isActive} ? '正常' : '已停用'"></span></td>
-                <td class="muted small" th:text="${ui.dt(c.createdAt)}"></td>
+                <td class="muted small nw" th:text="${ui.dt(c.createdAt)}"></td>
                 <td><a class="btn ghost sm" th:href="@{'/customers/' + ${c.id}}">详情</a></td>
               </tr>
               <tr th:if="${#lists.isEmpty(pr.rows)}"><td colspan="8" class="muted">没有找到客户，输入手机号或姓名搜索，或点击右上角建档</td></tr>

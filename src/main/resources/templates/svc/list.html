@@ -10,8 +10,8 @@
       <div th:replace="fragments/header :: flash"></div>
       <h1 class="page-title">服务项目 <span class="sub">体型四档价：小 / 中 / 大 / 巨型</span></h1>
 
-      <div class="grid-2">
-        <div class="card">
+      <div class="grid-form-list">
+        <div class="card" th:if="${session.sessionUser.isAdmin()}">
           <div class="card-head"><span>＋ 新增服务项目</span></div>
           <div class="card-body">
             <form method="post" th:action="@{/services/save}">
@@ -45,6 +45,7 @@
                   <td><span class="badge" th:classappend="${s.isActive} ? 'ok' : 'muted'" th:text="${s.isActive} ? '在售' : '已下架'"></span></td>
                   <td>
                     <form method="post" th:action="@{/services/{id}/toggle(id=${s.id})}" style="display:inline"
+                          th:if="${session.sessionUser.isAdmin()}"
                           onsubmit="return confirmAct('切换服务上下架？')">
                       <input type="hidden" name="active" th:value="${s.isActive} ? 'false' : 'true'">
                       <button class="btn ghost sm" th:text="${s.isActive} ? '下架' : '上架'"></button>

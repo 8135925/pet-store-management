@@ -14,7 +14,7 @@
 
       <div class="tabs">
         <a th:href="@{/products}" th:classappend="${view == null} ? 'active'">全部</a>
-        <a th:href="@{/products?view=expiring}" th:classappend="${view == 'expiring'} ? 'active'">⏰ 临期预警（<span th:text="${expiringCount}"></span>）</a>
+        <a th:href="@{/products?view=expiring}" th:classappend="${view == 'expiring'} ? 'active'"><i data-lucide="alarm-clock"></i> 临期预警（<span th:text="${expiringCount}"></span>）</a>
         <a th:href="@{/products?view=lowstock}" th:classappend="${view == 'lowstock'} ? 'active'"><i data-lucide="trending-down"></i> 低库存（<span th:text="${lowStockCount}"></span>）</a>
       </div>
 
@@ -44,17 +44,19 @@
                 <td><span class="badge" th:classappend="${p.isActive} ? 'ok' : 'muted'" th:text="${p.isActive} ? '在售' : '停售'"></span></td>
                 <td class="actions">
                   <a class="btn ghost sm" th:href="@{/products/{id}/ledger(id=${p.id})}">流水</a>
-                  <a class="btn ghost sm" th:href="@{/products/{id}/edit(id=${p.id})}">编辑</a>
-                  <form method="post" th:action="@{/products/{id}/stock(id=${p.id})}" class="inline-form">
-                    <input type="hidden" name="bizType" value="IN">
-                    <input class="input" type="number" name="qty" min="1" value="1" style="width:64px" title="采购入库数量">
-                    <button class="btn ghost sm" type="submit" title="采购入库"><i data-lucide="package-plus"></i> 入库</button>
-                  </form>
-                  <form method="post" th:action="@{/products/{id}/toggle(id=${p.id})}" style="display:inline"
-                        onsubmit="return confirmAct('切换商品上下架？')">
-                    <input type="hidden" name="active" th:value="${p.isActive} ? 'false' : 'true'">
-                    <button class="btn ghost sm" th:text="${p.isActive} ? '停售' : '上架'"></button>
-                  </form>
+                  <th:block th:if="${session.sessionUser.isAdmin()}">
+                    <a class="btn ghost sm" th:href="@{/products/{id}/edit(id=${p.id})}">编辑</a>
+                    <form method="post" th:action="@{/products/{id}/stock(id=${p.id})}" class="inline-form">
+                      <input type="hidden" name="bizType" value="IN">
+                      <input class="input" type="number" name="qty" min="1" value="1" style="width:64px" title="采购入库数量">
+                      <button class="btn ghost sm" type="submit" title="采购入库"><i data-lucide="package-plus"></i> 入库</button>
+                    </form>
+                    <form method="post" th:action="@{/products/{id}/toggle(id=${p.id})}" style="display:inline"
+                          onsubmit="return confirmAct('切换商品上下架？')">
+                      <input type="hidden" name="active" th:value="${p.isActive} ? 'false' : 'true'">
+                      <button class="btn ghost sm" th:text="${p.isActive} ? '停售' : '上架'"></button>
+                    </form>
+                  </th:block>
                 </td>
               </tr>
               <tr th:if="${#lists.isEmpty(filtered) and #lists.isEmpty(items)}"><td colspan="9" class="muted">暂无商品</td></tr>

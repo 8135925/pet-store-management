@@ -23,7 +23,12 @@ public class WebConfig implements WebMvcConfigurer {
                         "/card-types/**",
                         "/services/save", "/services/*/toggle",
                         "/products/new", "/products/save", "/products/*/edit", "/products/*/toggle",
-                        "/cards/*/void", "/cards/*/extend",
+                        "/products/*/stock",
+                        "/cards/sell", "/cards/*/void", "/cards/*/extend",
+                        "/suppliers/save", "/suppliers/*/toggle",
+                        "/purchases/**", "/batches/**", "/stock-takes/**",
+                        "/staff/save", "/staff/*/toggle",
+                        "/commission-rules/**", "/commissions/settle/**",
                         "/boarding/rooms/**",
                         "/bills/*/cancel");
     }

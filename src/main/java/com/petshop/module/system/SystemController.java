@@ -91,6 +91,13 @@ public class SystemController {
         return "redirect:/system/users";
     }
 
+    @PostMapping("/system/users/delete")
+    public String deleteUser(@RequestParam Long id, RedirectAttributes ra) {
+        userService.delete(id, currentUser());
+        ra.addFlashAttribute("okMsg", "用户已删除");
+        return "redirect:/system/users";
+    }
+
     private SessionUser currentUser() {
         org.springframework.web.context.request.RequestAttributes ra =
                 org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes();

@@ -28,4 +28,6 @@ public interface SysUserMapper {
     int countAdminActive(@Param("excludeId") Long excludeId);
 
     int updateLoginTime(@Param("id") Long id, @Param("time") LocalDateTime time);
+
+    int deleteById(@Param("id") Long id);
 }

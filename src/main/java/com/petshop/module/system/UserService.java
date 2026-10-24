@@ -131,6 +131,26 @@ public class UserService {
         mapper.updatePassword(id, encoder.encode(password));
     }
 
+    /**
+     * 删除用户（仅限店员账号）。管理员一律不可删除：当前登录者必是管理员（拦截器保证），
+     * 所以该规则同时天然防住了「删除自己」和「删光管理员」。
+     */
+    public void delete(Long id, SessionUser current) {
+        SysUser u = mapper.findById(id);
+        if (u == null) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "用户不存在");
+        }
+        if ("ADMIN".equals(u.getRole())) {
+            throw new BizException(ErrorCode.USER_DELETE_ADMIN);
+        }
+        if (current != null && id.equals(current.getId())) {
+            throw new BizException(ErrorCode.USER_DELETE_SELF);
+        }
+        mapper.deleteById(id);
+        log.info("用户已删除 id={} username={}（由 {} 执行）", id, u.getUsername(),
+                current == null ? "-" : current.getUsername());
+    }
+
     /** 供 DataInitializer 首次启动创建 admin */
     public void initAdmin(String username, String rawPassword) {
         if (mapper.count() > 0) {

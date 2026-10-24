@@ -25,7 +25,7 @@
             </thead>
             <tbody>
               <tr th:each="r : ${rows}">
-                <td th:text="${r.businessDate}"></td>
+                <td class="nw" th:text="${r.businessDate}"></td>
                 <td class="num" th:text="${ui.money(r.cardIncome)}"></td>
                 <td class="num" th:text="${ui.money(r.productIncome)}"></td>
                 <td class="num" th:text="${ui.money(r.serviceIncome)}"></td>

@@ -12,7 +12,7 @@
 
       <div class="card" style="max-width:640px">
         <div class="card-body">
-          <form method="post" th:action="@{/cards/sell}">
+          <form method="post" th:action="@{/cards/sell}" onsubmit="document.getElementById('sellBtn').disabled=true">
             <div class="form-grid">
               <div class="field full"><label>客户 *</label>
                 <select name="customerId" required>
@@ -43,7 +43,7 @@
               </div>
             </div>
             <div class="mt16">
-              <button class="btn lg" type="submit" onclick="this.disabled=true;this.form.submit()">确认售卡</button>
+              <button class="btn lg" type="submit" id="sellBtn">确认售卡</button>
             </div>
           </form>
         </div>

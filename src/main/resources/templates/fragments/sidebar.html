@@ -9,9 +9,9 @@
     <a th:href="@{/customers}" data-nav="/customers"><i data-lucide="users" class="ico"></i>客户档案</a>
     <a th:href="@{/pets}" data-nav="/pets"><i data-lucide="dog" class="ico"></i>宠物档案</a>
     <div class="nav-group-title">会员卡</div>
-    <a th:href="@{/cards/sell}" data-nav="/cards/sell"><i data-lucide="credit-card" class="ico"></i>售卡</a>
+    <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/cards/sell}" data-nav="/cards/sell"><i data-lucide="credit-card" class="ico"></i>售卡</a>
     <a th:href="@{/cards}" data-nav="/cards"><i data-lucide="chart-column" class="ico"></i>次卡余额表</a>
-    <a th:href="@{/card-types}" data-nav="/card-types"><i data-lucide="ticket" class="ico"></i>卡类型</a>
+    <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/card-types}" data-nav="/card-types"><i data-lucide="ticket" class="ico"></i>卡类型</a>
     <div class="nav-group-title">经营</div>
     <a th:href="@{/reminders}" data-nav="/reminders"><i data-lucide="bell-ring" class="ico"></i>到期提醒</a>
     <a th:href="@{/products}" data-nav="/products"><i data-lucide="package" class="ico"></i>商品库存</a>

@@ -129,8 +129,8 @@
             <div class="flex" style="gap:10px">
               <a class="btn" th:href="@{/bills/new}">开单收银</a>
               <a class="btn ghost" th:href="@{/customers/new}">客户建档</a>
-              <a class="btn ghost" th:href="@{/cards/sell}">售卡</a>
-              <a class="btn ghost" th:href="@{/products/new}">商品入库</a>
+              <a class="btn ghost" th:if="${session.sessionUser.isAdmin()}" th:href="@{/cards/sell}">售卡</a>
+              <a class="btn ghost" th:if="${session.sessionUser.isAdmin()}" th:href="@{/products/new}">商品入库</a>
             </div>
             <div class="mt16 muted small">
               提示：凌晨 00:00–03:59 的单据自动归属前一个营业日（04:00 切点）。

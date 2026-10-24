@@ -35,7 +35,7 @@
             </thead>
             <tbody>
             <tr th:each="r : ${c.rows}">
-              <td class="small" th:each="k : ${c.rows[0].keySet()}" th:text="${r[k]}"></td>
+              <td class="small" th:each="e : ${r.entrySet()}" th:text="${e.value}"></td>
             </tr>
             </tbody>
           </table>

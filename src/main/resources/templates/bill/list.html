@@ -37,7 +37,7 @@
                 <td class="small" th:text="${b.billNo}"></td>
                 <td th:text="${ui.billType(b.billType)}"></td>
                 <td th:text="${b.customerName}"></td>
-                <td th:text="${b.businessDate}"></td>
+                <td class="nw" th:text="${b.businessDate}"></td>
                 <td class="num" th:text="${ui.money(b.totalCent)}"></td>
                 <td class="num" th:text="${b.discountCent > 0} ? ${ui.money(b.discountCent)} : '—'"></td>
                 <td class="num" th:text="${ui.money(b.receivableCent)}"></td>

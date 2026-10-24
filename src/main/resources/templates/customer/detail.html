@@ -26,7 +26,7 @@
           </div>
           <div class="flex">
             <a class="btn" th:href="@{/bills/new(customerId=${customer.id})}"><i data-lucide="receipt-text"></i> 给 TA 开单</a>
-            <a class="btn ghost" th:href="@{/cards/sell(customerId=${customer.id})}"><i data-lucide="credit-card"></i> 售卡</a>
+            <a class="btn ghost" th:if="${session.sessionUser.isAdmin()}" th:href="@{/cards/sell(customerId=${customer.id})}"><i data-lucide="credit-card"></i> 售卡</a>
             <a class="btn ghost" th:href="@{/customers/{id}/edit(id=${customer.id})}">编辑</a>
             <form th:if="${session.sessionUser.isAdmin()}" method="post" th:action="@{/customers/{id}/toggle(id=${customer.id})}"
                   onsubmit="return confirmAct(this.active.value==='true' ? '恢复该客户？' : '停用该客户？停用后不再出现在默认搜索中。')">
@@ -133,7 +133,7 @@
               <tr th:each="b : ${bills}">
                 <td class="small" th:text="${b.billNo}"></td>
                 <td th:text="${ui.billType(b.billType)}"></td>
-                <td th:text="${b.businessDate}"></td>
+                <td class="nw" th:text="${b.businessDate}"></td>
                 <td class="num" th:text="${ui.money(b.receivableCent)}"></td>
                 <td class="num"><b th:text="${ui.money(b.receivedCent)}"></b></td>
                 <td th:text="${ui.payMethod(b.payMethod)}"></td>

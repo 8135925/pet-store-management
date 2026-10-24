@@ -4,9 +4,11 @@ import com.petshop.common.BizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.sqlite.SQLiteException;
 
@@ -31,6 +33,15 @@ public class GlobalExceptionHandler {
             return "redirect:" + referer(req);
         }
         ra.addFlashAttribute("errMsg", e.getMessage());
+        return "redirect:" + referer(req);
+    }
+
+    /** 表单参数缺失 / 类型转换失败 / 数字格式错误：统一友好提示，不落到 500 */
+    @ExceptionHandler({MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class, NumberFormatException.class})
+    public Object handleParamError(Exception e, HttpServletRequest req, RedirectAttributes ra) {
+        log.warn("参数错误 uri={} msg={}", req.getRequestURI(), e.getMessage());
+        ra.addFlashAttribute("errMsg", "表单填写不完整或格式不正确，请检查必填项后重试");
         return "redirect:" + referer(req);
     }
 

@@ -54,4 +54,8 @@
     <update id="updateLoginTime">
         UPDATE sys_user SET last_login_at = #{time} WHERE id = #{id}
     </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_user WHERE id = #{id}
+    </delete>
 </mapper>

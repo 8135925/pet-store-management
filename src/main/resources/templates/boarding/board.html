@@ -24,7 +24,7 @@
                 <td><b th:text="${o.petName}"></b> <span class="muted small" th:text="${o.breed}"></span></td>
                 <td><span th:text="${o.ownerName}"></span>
                     <a class="small" th:href="'tel:' + ${o.ownerPhone}" th:text="${o.ownerPhone}"></a></td>
-                <td class="small" th:text="${ui.dt(o.startAt)}"></td>
+                <td class="small nw" th:text="${ui.dt(o.startAt)}"></td>
                 <td class="small" th:text="${o.plannedEndOn}"></td>
                 <td><b th:text="${o.nightsSoFar()} + ' 晚'"></b>
                     <span class="badge danger" th:if="${o.overdue}"
@@ -48,7 +48,7 @@
                 <td><span class="badge primary" th:text="${o.roomCode}"></span></td>
                 <td><b th:text="${o.petName}"></b></td>
                 <td><span th:text="${o.ownerName}"></span> <span class="small" th:text="${o.ownerPhone}"></span></td>
-                <td class="small" th:text="${ui.dt(o.startAt)}"></td>
+                <td class="small nw" th:text="${ui.dt(o.startAt)}"></td>
                 <td class="small" th:text="${o.plannedEndOn}"></td>
                 <td><a class="btn primary sm" th:href="@{/boarding/{id}(id=${o.id})}">办理入住</a></td>
               </tr>
@@ -69,7 +69,7 @@
                 <td><span class="badge primary" th:text="${o.roomCode}"></span></td>
                 <td><b th:text="${o.petName}"></b></td>
                 <td><span th:text="${o.ownerName}"></span> <span class="small" th:text="${o.ownerPhone}"></span></td>
-                <td class="small" th:text="${ui.dt(o.startAt)}"></td>
+                <td class="small nw" th:text="${ui.dt(o.startAt)}"></td>
                 <td class="small" th:text="${o.plannedEndOn}"></td>
                 <td><a class="btn primary sm" th:href="@{/boarding/{id}(id=${o.id})}">退住结算</a></td>
               </tr>
@@ -99,8 +99,8 @@
                   <td th:text="${o.petName}"></td>
                   <td th:text="${o.ownerName}"></td>
                   <td th:text="${o.roomCode}"></td>
-                  <td class="small" th:text="${ui.dt(o.startAt)}"></td>
-                  <td class="small" th:text="${o.endAt != null} ? ${ui.dt(o.endAt)} : '—'"></td>
+                  <td class="small nw" th:text="${ui.dt(o.startAt)}"></td>
+                  <td class="small nw" th:text="${o.endAt != null} ? ${ui.dt(o.endAt)} : '—'"></td>
                   <td th:text="${o.days != null} ? ${o.days} + ' 晚' : '—'"></td>
                   <td><span class="badge" th:classappend="${o.status == 'CHECKED_IN'} ? 'primary' : (${o.status == 'CANCELLED'} ? 'danger' : 'ok')"
                             th:text="${ui.boardingStatus(o.status)}"></span></td>

@@ -15,9 +15,10 @@
         <span class="badge primary">当前库存 <span th:text="${product.stockQty}"></span></span>
       </h1>
 
-      <div class="card">
+      <div class="card" th:if="${session.sessionUser.isAdmin()}">
         <div class="card-body">
-          <form method="post" th:action="@{/products/{id}/stock(id=${product.id})}" class="inline-form">
+          <form method="post" th:action="@{/products/{id}/stock(id=${product.id})}" class="inline-form"
+                onsubmit="this.querySelector('button[type=submit]').disabled=true">
             <select name="bizType">
               <option value="IN">采购入库</option>
               <option value="RETURN">退货入库</option>
@@ -25,7 +26,7 @@
             </select>
             <input class="input" type="number" name="qty" required placeholder="数量（正负）" style="width:140px">
             <input class="input" type="text" name="remark" placeholder="原因备注（必填建议）" style="width:220px">
-            <button class="btn" type="submit" onclick="this.disabled=true;this.form.submit()">提交变动</button>
+            <button class="btn" type="submit">提交变动</button>
           </form>
         </div>
       </div>
@@ -36,7 +37,7 @@
             <thead><tr><th>时间</th><th>类型</th><th class="num">变动</th><th class="num">变动前</th><th class="num">变动后</th><th>关联</th><th>操作人</th><th>备注</th></tr></thead>
             <tbody>
               <tr th:each="l : ${logs}">
-                <td class="small" th:text="${ui.dt(l.createdAt)}"></td>
+                <td class="small nw" th:text="${ui.dt(l.createdAt)}"></td>
                 <td><span class="badge" th:classappend="${l.qtyChange > 0} ? 'ok' : 'danger'" th:text="${ui.ledgerType(l.bizType)}"></span></td>
                 <td class="num"><b th:text="${l.qtyChange > 0} ? '+' + ${l.qtyChange} : ${l.qtyChange}"></b></td>
                 <td class="num" th:text="${l.beforeQty}"></td>

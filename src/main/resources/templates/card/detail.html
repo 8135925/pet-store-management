@@ -62,7 +62,7 @@
             <thead><tr><th>时间</th><th>次数</th><th>扣的是</th><th>订单</th><th>操作人</th></tr></thead>
             <tbody>
               <tr th:each="l : ${consumeLogs}">
-                <td th:text="${ui.dt(l.createdAt)}"></td>
+                <td class="nw" th:text="${ui.dt(l.createdAt)}"></td>
                 <td th:text="${l.qty}"></td>
                 <td><span class="badge" th:classappend="${l.fromGift} ? 'warn' : 'primary'" th:text="${l.fromGift} ? '赠送次数' : '付费次数'"></span></td>
                 <td><a th:href="@{/bills/{id}(id=${l.billId})}" th:text="'单 #' + ${l.billId}"></a></td>
@@ -81,7 +81,7 @@
             <thead><tr><th>时间</th><th>原到期日</th><th>新到期日</th><th>原因</th><th>操作人</th></tr></thead>
             <tbody>
               <tr th:each="l : ${extendLogs}">
-                <td th:text="${ui.dt(l.createdAt)}"></td>
+                <td class="nw" th:text="${ui.dt(l.createdAt)}"></td>
                 <td th:text="${l.oldExpireOn}"></td>
                 <td th:text="${l.newExpireOn}"></td>
                 <td th:text="${l.reason}"></td>

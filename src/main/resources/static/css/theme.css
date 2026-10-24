@@ -100,11 +100,16 @@ a:hover { color: var(--primary); }
   font-weight: 500; color: var(--text);
 }
 .card-body { padding: 18px; }
-.card-body.flush { padding: 0; }
+/* 表格超宽时横向滚动，而不是被卡片裁掉右侧内容 */
+.card-body.flush { padding: 0; overflow-x: auto; }
 .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-@media (max-width: 1024px) { .grid-6 { grid-template-columns: repeat(3, 1fr); } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+/* 左窄表单 + 右宽表格布局：列表侧占满剩余宽度，避免表格横向滚动 */
+.grid-form-list { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+/* 表单卡被隐藏（如店员视图）只剩一张卡时，横跨全部列宽，避免挤进窄列 */
+.grid-form-list > .card:only-child { grid-column: 1 / -1; }
+@media (max-width: 1024px) { .grid-6 { grid-template-columns: repeat(3, 1fr); } .grid-2, .grid-3, .grid-form-list { grid-template-columns: 1fr; } }
 .stat {
   background: var(--panel); border: none;
   border-radius: var(--radius);
@@ -126,7 +131,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tbl tr:last-child td { border-bottom: none; }
 .tbl tr:hover td { background: var(--bg); }
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
-.tbl .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.tbl .actions { display: flex; gap: 6px; flex-wrap: nowrap; }
+/* 单元格内禁止换行：时间、日期、操作按钮列用 */
+.tbl .nw { white-space: nowrap; }
 .row-red td { background: var(--danger-light); }
 .badge {
   display: inline-block; padding: 2px 9px; border-radius: var(--radius-ctl);
@@ -184,7 +191,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 .btn.ghost:hover { background: #E8E8E8; color: var(--text); }
 .btn.danger { background: var(--danger); }
 .btn.danger:hover { background: #96382F; }
-.btn.sm { min-height: 32px; padding: 4px 14px; font-size: 13px; }
+.btn.sm { min-height: 32px; padding: 4px 11px; font-size: 13px; }
 .btn.lg { min-height: 44px; padding: 10px 32px; font-size: 15px; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 

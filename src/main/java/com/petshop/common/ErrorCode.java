@@ -26,6 +26,7 @@ public enum ErrorCode {
     USER_EXISTS("该用户名已存在"),
     USER_LAST_ADMIN("系统至少需要保留一个管理员"),
     USER_DELETE_SELF("不能删除（停用）自己的账号"),
+    USER_DELETE_ADMIN("管理员账号不能删除，可改为停用"),
     DB_LOCKED("系统繁忙，请稍后重试"),
     BACKUP_FAILED("备份失败，请检查磁盘空间"),
     SYSTEM_ERROR("系统出错，请稍后重试"),
