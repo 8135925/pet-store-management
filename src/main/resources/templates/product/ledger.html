@@ -9,7 +9,7 @@
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
       <div class="toolbar" style="margin-bottom:8px">
-        <button type="button" class="btn ghost sm" data-back="/products">← 返回商品库存</button>
+        <button type="button" class="btn ghost sm" data-back="/products"><i data-lucide="arrow-left"></i> 返回商品库存</button>
       </div>
       <h1 class="page-title">库存流水 · <span th:text="${product.name}"></span>
         <span class="badge primary">当前库存 <span th:text="${product.stockQty}"></span></span>

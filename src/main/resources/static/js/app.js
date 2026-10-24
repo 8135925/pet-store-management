@@ -23,10 +23,33 @@
     });
     if (best) {
       best.classList.add('active');
-      // 侧栏是独立滚动容器：跳转/刷新后把当前菜单滚回可视区，
-      // 避免点了靠下的菜单（如用户管理）每次都要重新往下拉
-      best.scrollIntoView({ block: 'nearest' });
     }
+  }
+
+  // 侧栏滚动位置记忆：跳转后侧栏重新渲染、浏览器会把 scrollTop 归零，
+  // 这里在还原位置的同时不再做 scrollIntoView，保证点菜单后滚动条纹丝不动。
+  // （首次进入无记录且高亮项在视口外时，才轻推到可视区一次）
+  var SIDEBAR_SCROLL_KEY = 'sidebarScrollTop';
+
+  function restoreSidebarScroll() {
+    var sb = document.querySelector('.sidebar');
+    if (!sb) {
+      return;
+    }
+    var saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+    if (saved !== null && !isNaN(parseInt(saved, 10))) {
+      sb.scrollTop = parseInt(saved, 10);
+    } else {
+      var active = sb.querySelector('.nav a.active');
+      if (active) {
+        active.scrollIntoView({ block: 'nearest' });
+      }
+    }
+    sb.addEventListener('scroll', function () {
+      try {
+        sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(sb.scrollTop));
+      } catch (e) { /* 隐私模式等场景忽略 */ }
+    }, { passive: true });
   }
 
   // 「返回」按钮：优先回到来源页（保留列表的筛选条件），
@@ -68,6 +91,11 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     highlightNav();
+    restoreSidebarScroll();
     bindBackButtons();
+    // Lucide 图标：把 <i data-lucide="name"> 替换为内联 SVG
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      lucide.createIcons();
+    }
   });
 })();

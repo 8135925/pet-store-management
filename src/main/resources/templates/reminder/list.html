@@ -41,25 +41,25 @@
                   <div class="actions">
                     <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline">
                       <input type="hidden" name="status" value="CONTACTED">
-                      <button class="btn ghost sm" title="已电话/已微信，未成交">📞 已联系</button>
+                      <button class="btn ghost sm" title="已电话/已微信，未成交"><i data-lucide="phone"></i> 已联系</button>
                     </form>
                     <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline">
                       <input type="hidden" name="status" value="BOOKED">
-                      <button class="btn ghost sm">📅 已预约</button>
+                      <button class="btn ghost sm"><i data-lucide="calendar-check"></i> 已预约</button>
                     </form>
                     <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline">
                       <input type="hidden" name="status" value="DONE">
-                      <button class="btn ghost sm">✔ 已完成</button>
+                      <button class="btn ghost sm"><i data-lucide="check"></i> 已完成</button>
                     </form>
                     <form method="post" th:action="@{/reminders/{id}/mark(id=${e.id})}" style="display:inline"
                           onsubmit="return confirmAct('确认标记「暂不联系」？记录保留但不再提醒。')">
                       <input type="hidden" name="status" value="IGNORED">
-                      <button class="btn ghost sm">🚫 暂不联系</button>
+                      <button class="btn ghost sm"><i data-lucide="ban"></i> 暂不联系</button>
                     </form>
                   </div>
                 </td>
               </tr>
-              <tr th:if="${#lists.isEmpty(items)}"><td colspan="7" class="muted">该范围内没有待处理的提醒 🎉</td></tr>
+              <tr th:if="${#lists.isEmpty(items)}"><td colspan="7" class="muted"><i data-lucide="party-popper"></i> 该范围内没有待处理的提醒</td></tr>
             </tbody>
           </table>
         </div>

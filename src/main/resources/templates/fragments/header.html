@@ -2,7 +2,7 @@
 <header class="topbar" th:fragment="header">
   <div class="store-name" th:text="${storeName}">宠物店</div>
   <div class="user-box">
-    <span>👤</span>
+    <i data-lucide="user"></i>
     <b th:text="${session.sessionUser != null ? session.sessionUser.displayName : ''}">-</b>
     <span class="badge primary" th:text="${session.sessionUser != null and session.sessionUser.isAdmin()} ? '店主' : '店员'">STAFF</span>
     <a class="btn ghost sm" th:href="@{/logout}">退出</a>

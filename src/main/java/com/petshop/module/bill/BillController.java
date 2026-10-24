@@ -148,10 +148,10 @@ public class BillController {
             Map<String, Object> m = new HashMap<>();
             m.put("id", s.getId());
             m.put("name", s.getName());
-            m.put("priceS", s.getPriceSCent());
-            m.put("priceM", s.getPriceMCent());
-            m.put("priceL", s.getPriceLCent());
-            m.put("priceXL", s.getPriceXLCent());
+            m.put("priceSCent", s.getPriceSCent());
+            m.put("priceMCent", s.getPriceMCent());
+            m.put("priceLCent", s.getPriceLCent());
+            m.put("priceXLCent", s.getPriceXLCent());
             svcs.add(m);
         }
         data.put("services", svcs);

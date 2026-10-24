@@ -49,7 +49,7 @@
       <div class="grid-2 mt16">
         <div class="card">
           <div class="card-head">
-            <span>🏠 在店寄养（<span th:text="${inHouseCount}"></span>）</span>
+            <span><i data-lucide="bed-double"></i> 在店寄养（<span th:text="${inHouseCount}"></span>）</span>
             <a class="btn ghost sm" th:href="@{/boarding}">寄养看板</a>
           </div>
           <div class="card-body flush">
@@ -72,7 +72,7 @@
 
         <div class="card">
           <div class="card-head">
-            <span>📅 今日预约</span>
+            <span><i data-lucide="calendar-check"></i> 今日预约</span>
             <a class="btn ghost sm" th:href="@{/appointments}">预约看板</a>
           </div>
           <div class="card-body flush">
@@ -96,7 +96,7 @@
       <div class="grid-2 mt16">
         <div class="card">
           <div class="card-head">
-            <span>💉 待办提醒（最近 8 条）</span>
+            <span><i data-lucide="syringe"></i> 待办提醒（最近 8 条）</span>
             <a class="btn ghost sm" th:href="@{/reminders}">查看全部</a>
           </div>
           <div class="card-body flush">
@@ -124,7 +124,7 @@
         </div>
 
         <div class="card">
-          <div class="card-head"><span>⚡ 快捷操作</span></div>
+          <div class="card-head"><span><i data-lucide="zap"></i> 快捷操作</span></div>
           <div class="card-body">
             <div class="flex" style="gap:10px">
               <a class="btn" th:href="@{/bills/new}">开单收银</a>

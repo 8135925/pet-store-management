@@ -9,7 +9,7 @@
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
       <div class="toolbar" style="margin-bottom:8px">
-        <button type="button" class="btn ghost sm" data-back="/bills">← 返回单据查询</button>
+        <button type="button" class="btn ghost sm" data-back="/bills"><i data-lucide="arrow-left"></i> 返回单据查询</button>
       </div>
 
       <div class="card" style="max-width:760px;margin:0 auto">
@@ -20,12 +20,12 @@
                     th:text="${bill.status == 'SETTLED'} ? '已结账' : '已反结账'"></span>
             </h1>
             <div class="flex">
-              <button class="btn ghost" onclick="window.print()">🖨 打印（Ctrl+P）</button>
+              <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i> 打印（Ctrl+P）</button>
               <form th:if="${session.sessionUser.isAdmin() and bill.status == 'SETTLED'}"
                     method="post" th:action="@{/bills/{id}/cancel(id=${bill.id})}"
                     onsubmit="var r=prompt('反结账原因（必填）：'); if(!r) return false; this.reason.value=r;">
                 <input type="hidden" name="reason">
-                <button class="btn danger">↩ 反结账</button>
+                <button class="btn danger"><i data-lucide="undo-2"></i> 反结账</button>
               </form>
             </div>
           </div>

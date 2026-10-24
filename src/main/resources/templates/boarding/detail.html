@@ -9,7 +9,7 @@
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
       <div class="toolbar" style="margin-bottom:8px">
-        <button type="button" class="btn ghost sm" data-back="/boarding">← 返回寄养看板</button>
+        <button type="button" class="btn ghost sm" data-back="/boarding"><i data-lucide="arrow-left"></i> 返回寄养看板</button>
       </div>
       <h1 class="page-title">寄养单 <span th:text="${o.orderNo}"></span>
         <span class="badge" th:classappend="${o.status == 'CHECKED_IN'} ? 'primary' : (${o.status == 'CANCELLED'} ? 'danger' : 'ok')"
@@ -43,7 +43,7 @@
           <div class="mt16" th:if="${o.status == 'BOOKED'}">
             <form method="post" th:action="@{/boarding/{id}/checkin(id=${o.id})}" style="display:inline"
                   onsubmit="return confirmAct('确认办理入住？将校验疫苗记录（BR-09）。')">
-              <button class="btn primary">✅ 办理入住</button>
+              <button class="btn primary"><i data-lucide="check"></i> 办理入住</button>
             </form>
             <form method="post" th:action="@{/boarding/{id}/cancel(id=${o.id})}" style="display:inline"
                   onsubmit="return confirmAct('确认取消该寄养单？')">
@@ -59,7 +59,7 @@
                 <option value="ALIPAY">支付宝</option><option value="BANK_CARD">银行卡</option>
                 <option value="OTHER">其他</option>
               </select>
-              <button class="btn primary">💵 退住结算</button>
+              <button class="btn primary"><i data-lucide="banknote"></i> 退住结算</button>
             </form>
             <form method="post" th:action="@{/boarding/{id}/extend(id=${o.id})}" style="display:inline;margin-top:8px">
               <label class="small muted">预离店日改为</label>
@@ -77,7 +77,7 @@
 
       <div class="card mt16" style="max-width:760px" th:if="${o.status == 'CHECKED_IN'}">
         <div class="card-body">
-          <h2 class="sub">📝 每日记录（一天一条，BR-14）</h2>
+          <h2 class="sub"><i data-lucide="notebook-pen"></i> 每日记录（一天一条，BR-14）</h2>
           <form method="post" th:action="@{/boarding/{id}/log(id=${o.id})}" class="toolbar">
             <input type="date" class="input" name="logDate" required th:value="${today}">
             <label class="small">喂食次数</label>
@@ -92,7 +92,7 @@
               <tr th:each="l : ${logs}">
                 <td th:text="${l.logDate}"></td>
                 <td th:text="${l.fedCount} + ' 次'"></td>
-                <td th:text="${l.walked} ? '✅' : '—'"></td>
+                <td th:text="${l.walked} ? '已遛' : '—'"></td>
                 <td th:text="${l.note} ?: '—'"></td>
                 <td class="small" th:text="${l.operator}"></td>
               </tr>

@@ -15,7 +15,7 @@
       <div class="tabs">
         <a th:href="@{/products}" th:classappend="${view == null} ? 'active'">全部</a>
         <a th:href="@{/products?view=expiring}" th:classappend="${view == 'expiring'} ? 'active'">⏰ 临期预警（<span th:text="${expiringCount}"></span>）</a>
-        <a th:href="@{/products?view=lowstock}" th:classappend="${view == 'lowstock'} ? 'active'">📉 低库存（<span th:text="${lowStockCount}"></span>）</a>
+        <a th:href="@{/products?view=lowstock}" th:classappend="${view == 'lowstock'} ? 'active'"><i data-lucide="trending-down"></i> 低库存（<span th:text="${lowStockCount}"></span>）</a>
       </div>
 
       <div class="alert ok small">
@@ -48,7 +48,7 @@
                   <form method="post" th:action="@{/products/{id}/stock(id=${p.id})}" class="inline-form">
                     <input type="hidden" name="bizType" value="IN">
                     <input class="input" type="number" name="qty" min="1" value="1" style="width:64px" title="采购入库数量">
-                    <button class="btn ghost sm" type="submit" title="采购入库">📥 入库</button>
+                    <button class="btn ghost sm" type="submit" title="采购入库"><i data-lucide="package-plus"></i> 入库</button>
                   </form>
                   <form method="post" th:action="@{/products/{id}/toggle(id=${p.id})}" style="display:inline"
                         onsubmit="return confirmAct('切换商品上下架？')">

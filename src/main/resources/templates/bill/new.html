@@ -22,7 +22,7 @@
         <div class="pos-wrap">
           <div class="pos-left">
             <div class="card">
-              <div class="card-head"><span>🐶 选择宠物（含服务项时必须选择）</span></div>
+              <div class="card-head"><span><i data-lucide="dog"></i> 选择宠物（含服务项时必须选择）</span></div>
               <div class="card-body">
                 <div class="pick-grid" id="petPick"></div>
                 <div class="hint mt8" id="petHint"></div>
@@ -30,20 +30,20 @@
             </div>
 
             <div class="card">
-              <div class="card-head"><span>✂️ 服务项目（按体型档计价）</span></div>
+              <div class="card-head"><span><i data-lucide="scissors"></i> 服务项目（按体型档计价）</span></div>
               <div class="card-body">
                 <div class="pick-grid">
                   <button type="button" class="pick" th:each="s : ${data.services}"
                           th:onclick="'addService(' + ${s.id} + ')'">
                     <b th:text="${s.name}"></b>
-                    <span th:text="'S ¥' + ${ui.yuan(s.priceS)} + ' · M ¥' + ${ui.yuan(s.priceM)} + ' · L ¥' + ${ui.yuan(s.priceL)} + ' · XL ¥' + ${ui.yuan(s.priceXL)}"></span>
+                    <span th:text="'S ¥' + ${ui.yuan(s.priceSCent)} + ' · M ¥' + ${ui.yuan(s.priceMCent)} + ' · L ¥' + ${ui.yuan(s.priceLCent)} + ' · XL ¥' + ${ui.yuan(s.priceXLCent)}"></span>
                   </button>
                 </div>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-head"><span>📦 商品</span>
+              <div class="card-head"><span><i data-lucide="package"></i> 商品</span>
                 <input type="text" id="barcodeInput" placeholder="扫码枪对准此处 / 输入条码回车"
                        style="width:220px;margin-left:auto" autocomplete="off">
               </div>
@@ -59,7 +59,7 @@
             </div>
 
             <div class="card">
-              <div class="card-head"><span>🧾 明细</span></div>
+              <div class="card-head"><span><i data-lucide="receipt-text"></i> 明细</span></div>
               <div class="card-body flush" id="lineBox">
                 <div class="pos-line muted" id="emptyLine">还没选项目，点上方卡片加入明细</div>
               </div>
@@ -68,7 +68,7 @@
 
           <div class="pos-right">
             <div class="card">
-              <div class="card-head"><span>💰 结账</span></div>
+              <div class="card-head"><span><i data-lucide="wallet"></i> 结账</span></div>
               <div class="card-body">
                 <div class="sum-row"><span class="muted">明细合计</span><b id="sumSub">¥0.00</b></div>
                 <div class="sum-row"><span class="muted">次卡抵扣</span><b id="sumCard">¥0.00</b></div>
@@ -92,7 +92,7 @@
                   <label>备注</label>
                   <input type="text" name="remark" placeholder="选填">
                 </div>
-                <button class="btn lg" type="submit" id="submitBtn" style="width:100%">✔ 提交结账</button>
+                <button class="btn lg" type="submit" id="submitBtn" style="width:100%"><i data-lucide="check"></i> 提交结账</button>
                 <div class="hint mt8" id="formErr" style="color:var(--danger)"></div>
               </div>
             </div>
@@ -306,12 +306,16 @@ function render() {
       '<div>' + tierSel + '</div>' +
       '<div>' + cardSel + '</div>' +
       '<div style="display:flex;gap:4px"><input type="number" min="1" value="' + l.qty + '" style="width:56px" onchange="chgQty(' + l.key + ', this.value)">' +
-      '<button type="button" class="pos-del" onclick="delLine(' + l.key + ')">✕</button></div>';
+      '<button type="button" class="pos-del" onclick="delLine(' + l.key + ')"><i data-lucide="x"></i></button></div>';
     // 布局为 5 列：名称/宠物/档位/卡/数量 —— 合并最后两块
     div.style.gridTemplateColumns = '1fr 100px 130px 150px 110px';
     box.appendChild(div);
   });
   recalc();
+  // 动态插入的行里有 data-lucide 图标，补一次渲染
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
 }
 
 function submitForm(f) {

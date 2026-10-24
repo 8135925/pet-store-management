@@ -13,19 +13,28 @@
       <div class="card" style="max-width:560px">
         <div class="card-body">
           <form method="post" th:action="@{/system/config}">
+            <div class="field full"><label>店名（打印在单据抬头）*</label>
+              <input name="storeName" required th:value="${storeName}"></div>
+
+            <hr class="divider">
+
             <div class="form-grid">
-              <div class="field full"><label>店名（打印在单据抬头）*</label>
-                <input name="storeName" required th:value="${storeName}"></div>
-              <div class="field full"><label>
-                <input type="checkbox" name="giftFirst" th:checked="${giftFirst}"> 赠次优先（核销时先扣赠送次数）
-              </label>
-                <div class="hint">先扣付费次会让客户觉得「送的没给」，建议开启</div>
-              </div>
               <div class="field"><label>提醒提前天数</label>
                 <input type="number" name="expireWarnDays" min="1" th:value="${expireWarnDays}"></div>
               <div class="field"><label>低库存阈值（全局）</label>
                 <input type="number" name="lowStockWarn" min="0" th:value="${lowStockWarn}"></div>
             </div>
+
+            <hr class="divider">
+
+            <div class="field full">
+              <label class="check">
+                <input type="checkbox" name="giftFirst" th:checked="${giftFirst}">
+                赠次优先（核销时先扣赠送次数）
+              </label>
+              <div class="hint" style="margin-top:6px">先扣付费次会让客户觉得「送的没给」，建议开启</div>
+            </div>
+
             <div class="mt16"><button class="btn lg" type="submit">保存</button></div>
           </form>
         </div>

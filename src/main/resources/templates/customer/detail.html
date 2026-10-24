@@ -9,7 +9,7 @@
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
       <div class="toolbar" style="margin-bottom:8px">
-        <button type="button" class="btn ghost sm" data-back="/customers">← 返回客户档案</button>
+        <button type="button" class="btn ghost sm" data-back="/customers"><i data-lucide="arrow-left"></i> 返回客户档案</button>
       </div>
 
       <div class="card">
@@ -17,16 +17,16 @@
           <div>
             <h1 class="page-title mt0" style="margin-bottom:2px" th:text="${customer.name}"></h1>
             <div class="muted">
-              📱 <span th:text="${customer.phone}"></span>
+              <i data-lucide="smartphone"></i> <span th:text="${customer.phone}"></span>
               <span th:if="${customer.source != null}"> · 来源：<span th:text="${customer.source}"></span></span>
               <span class="badge" th:classappend="${customer.isActive} ? 'ok' : 'muted'"
                     th:text="${customer.isActive} ? '正常' : '已停用'"></span>
             </div>
-            <div class="small muted" th:if="${customer.remark != null and !customer.remark.isEmpty()}">📝 <span th:text="${customer.remark}"></span></div>
+            <div class="small muted" th:if="${customer.remark != null and !customer.remark.isEmpty()}"><i data-lucide="pen-line"></i> <span th:text="${customer.remark}"></span></div>
           </div>
           <div class="flex">
-            <a class="btn" th:href="@{/bills/new(customerId=${customer.id})}">🧾 给 TA 开单</a>
-            <a class="btn ghost" th:href="@{/cards/sell(customerId=${customer.id})}">💳 售卡</a>
+            <a class="btn" th:href="@{/bills/new(customerId=${customer.id})}"><i data-lucide="receipt-text"></i> 给 TA 开单</a>
+            <a class="btn ghost" th:href="@{/cards/sell(customerId=${customer.id})}"><i data-lucide="credit-card"></i> 售卡</a>
             <a class="btn ghost" th:href="@{/customers/{id}/edit(id=${customer.id})}">编辑</a>
             <form th:if="${session.sessionUser.isAdmin()}" method="post" th:action="@{/customers/{id}/toggle(id=${customer.id})}"
                   onsubmit="return confirmAct(this.active.value==='true' ? '恢复该客户？' : '停用该客户？停用后不再出现在默认搜索中。')">
@@ -41,7 +41,7 @@
       <!-- 宠物 -->
       <div class="card">
         <div class="card-head">
-          <span>🐶 名下宠物（<span th:text="${#lists.size(pets)}"></span>）</span>
+          <span><i data-lucide="dog"></i> 名下宠物（<span th:text="${#lists.size(pets)}"></span>）</span>
           <button class="btn sm" onclick="document.getElementById('petDialog').showModal()">＋ 添加宠物</button>
         </div>
         <div class="card-body flush">
@@ -79,7 +79,7 @@
       <div class="grid-2">
         <!-- 持有卡 -->
         <div class="card">
-          <div class="card-head"><span>💳 持有次卡</span></div>
+          <div class="card-head"><span><i data-lucide="credit-card"></i> 持有次卡</span></div>
           <div class="card-body flush">
             <table class="tbl">
               <thead><tr><th>卡号</th><th>卡类型</th><th>剩余</th><th>到期日</th><th>状态</th><th></th></tr></thead>
@@ -101,7 +101,7 @@
 
         <!-- 待办提醒 -->
         <div class="card">
-          <div class="card-head"><span>💉 待办提醒</span></div>
+          <div class="card-head"><span><i data-lucide="syringe"></i> 待办提醒</span></div>
           <div class="card-body flush">
             <table class="tbl">
               <thead><tr><th>宠物</th><th>项目</th><th>到期日</th><th></th></tr></thead>
@@ -125,7 +125,7 @@
 
       <!-- 近 10 单 -->
       <div class="card">
-        <div class="card-head"><span>🧾 近 10 单</span></div>
+        <div class="card-head"><span><i data-lucide="receipt-text"></i> 近 10 单</span></div>
         <div class="card-body flush">
           <table class="tbl">
             <thead><tr><th>单号</th><th>类型</th><th>营业日</th><th>应收</th><th>实收</th><th>方式</th><th>状态</th><th>操作人</th><th></th></tr></thead>
@@ -154,7 +154,7 @@
 <!-- 宠物建档/编辑弹窗 -->
 <dialog class="modal" id="petDialog">
   <div class="modal-head"><span id="petDialogTitle">添加宠物</span>
-    <button class="btn ghost sm" type="button" onclick="document.getElementById('petDialog').close()">✕</button>
+    <button class="btn ghost sm" type="button" onclick="document.getElementById('petDialog').close()"><i data-lucide="x"></i></button>
   </div>
   <div class="modal-body">
     <form method="post" th:action="@{/pets/save}" id="petForm">
@@ -195,7 +195,7 @@
 <!-- 免疫记录弹窗 -->
 <dialog class="modal" id="eventDialog">
   <div class="modal-head"><span>添加免疫 / 驱虫 / 体检记录</span>
-    <button class="btn ghost sm" type="button" onclick="document.getElementById('eventDialog').close()">✕</button>
+    <button class="btn ghost sm" type="button" onclick="document.getElementById('eventDialog').close()"><i data-lucide="x"></i></button>
   </div>
   <div class="modal-body">
     <form method="post" th:action="@{/reminders/save}">
@@ -230,7 +230,7 @@
 
 <!-- 便捷按钮 -->
 <div class="no-print" style="position:fixed;right:22px;bottom:22px;z-index:50">
-  <button class="btn lg" onclick="document.getElementById('eventDialog').showModal()">💉 记一针</button>
+  <button class="btn lg" onclick="document.getElementById('eventDialog').showModal()"><i data-lucide="syringe"></i> 记一针</button>
 </div>
 
 <script>

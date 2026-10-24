@@ -14,7 +14,7 @@
 
       <div class="card mt16">
         <div class="card-body">
-          <h2 class="sub">🏠 在住宠物（<span th:text="${#lists.size(inHouse)}"></span>）</h2>
+          <h2 class="sub"><i data-lucide="bed-double"></i> 在住宠物（<span th:text="${#lists.size(inHouse)}"></span>）</h2>
           <table class="tbl">
             <thead><tr><th>单号</th><th>笼位</th><th>宠物</th><th>主人/电话</th><th>入住</th><th>预离店</th><th>已住</th><th></th></tr></thead>
             <tbody>
@@ -39,7 +39,7 @@
 
       <div class="card mt16">
         <div class="card-body">
-          <h2 class="sub">📥 今日应入住（<span th:text="${#lists.size(todayArrivals)}"></span>）</h2>
+          <h2 class="sub"><i data-lucide="log-in"></i> 今日应入住（<span th:text="${#lists.size(todayArrivals)}"></span>）</h2>
           <table class="tbl">
             <thead><tr><th>单号</th><th>笼位</th><th>宠物</th><th>主人/电话</th><th>计划入住</th><th>预离店</th><th></th></tr></thead>
             <tbody>
@@ -60,7 +60,7 @@
 
       <div class="card mt16">
         <div class="card-body">
-          <h2 class="sub">📤 今日/已超期应离店（<span th:text="${#lists.size(todayDue)}"></span>）</h2>
+          <h2 class="sub"><i data-lucide="log-out"></i> 今日/已超期应离店（<span th:text="${#lists.size(todayDue)}"></span>）</h2>
           <table class="tbl">
             <thead><tr><th>单号</th><th>笼位</th><th>宠物</th><th>主人/电话</th><th>入住</th><th>预离店</th><th></th></tr></thead>
             <tbody>
@@ -81,7 +81,7 @@
 
       <div class="card mt16">
         <div class="card-body">
-          <h2 class="sub">📋 历史寄养单</h2>
+          <h2 class="sub"><i data-lucide="clipboard-list"></i> 历史寄养单</h2>
           <form class="toolbar" method="get" action="/boarding">
             <input type="hidden" name="view" value="history">
             <input class="input" type="text" name="keyword" placeholder="单号/客户/手机号/宠物名" th:value="${keyword}" style="width:180px">

@@ -9,7 +9,7 @@
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
       <div class="toolbar" style="margin-bottom:8px">
-        <button type="button" class="btn ghost sm" data-back="/cards">← 返回次卡余额表</button>
+        <button type="button" class="btn ghost sm" data-back="/cards"><i data-lucide="arrow-left"></i> 返回次卡余额表</button>
       </div>
 
       <div class="card">
@@ -25,11 +25,11 @@
           </div>
           <div class="flex" th:if="${session.sessionUser.isAdmin()}">
             <button class="btn ghost" onclick="document.getElementById('extendDialog').showModal()"
-                    th:if="${card.status != 'VOID'}">📅 延期</button>
+                    th:if="${card.status != 'VOID'}"><i data-lucide="calendar-clock"></i> 延期</button>
             <form method="post" th:action="@{/cards/{id}/void(id=${card.id})}" th:if="${card.status != 'VOID'}"
                   onsubmit="var r=prompt('作废原因（已核销的卡必填）：'); if(r===null) return false; this.reason.value=r;">
               <input type="hidden" name="reason">
-              <button class="btn danger">🚫 作废</button>
+              <button class="btn danger"><i data-lucide="ban"></i> 作废</button>
             </form>
           </div>
         </div>
@@ -97,7 +97,7 @@
 
 <dialog class="modal" id="extendDialog">
   <div class="modal-head"><span>卡延期</span>
-    <button class="btn ghost sm" type="button" onclick="document.getElementById('extendDialog').close()">✕</button>
+    <button class="btn ghost sm" type="button" onclick="document.getElementById('extendDialog').close()"><i data-lucide="x"></i></button>
   </div>
   <div class="modal-body">
     <form method="post" th:action="@{/cards/{id}/extend(id=${card.id})}">

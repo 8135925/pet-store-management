@@ -20,7 +20,7 @@
           </form>
 
           <div th:if="${#lists.size(stale) > 0}" class="mt16">
-            <h2 class="sub">⚠ 逾期未处理（<span th:text="${#lists.size(stale)}"></span>）</h2>
+            <h2 class="sub"><i data-lucide="triangle-alert"></i> 逾期未处理（<span th:text="${#lists.size(stale)}"></span>）</h2>
             <table class="tbl">
               <thead><tr><th>日期</th><th>时段</th><th>宠物</th><th>项目</th><th>主人</th><th></th></tr></thead>
               <tbody>

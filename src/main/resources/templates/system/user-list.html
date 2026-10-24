@@ -42,25 +42,27 @@
                   <td><span class="badge" th:classappend="${u.isActive} ? 'ok' : 'muted'" th:text="${u.isActive} ? '启用' : '停用'"></span></td>
                   <td class="small muted" th:text="${u.lastLoginAt != null} ? ${ui.dt(u.lastLoginAt)} : '从未'"></td>
                   <td>
-                    <form method="post" th:action="@{/system/users/save}" class="inline-form">
-                      <input type="hidden" name="id" th:value="${u.id}">
-                      <input type="hidden" name="username" th:value="${u.username}">
-                      <input type="hidden" name="role" th:value="${u.role}">
-                      <input type="hidden" name="active" th:value="${u.isActive} ? 'false' : 'true'">
-                      <input name="displayName" th:value="${u.displayName}" style="width:90px">
-                      <input type="password" name="password" placeholder="新密码" style="width:90px" th:if="${false}">
-                      <button class="btn ghost sm" th:text="${u.isActive} ? '停用' : '启用'"></button>
-                    </form>
-                    <form method="post" th:action="@{/system/users/save}" class="inline-form"
-                          onsubmit="var p=prompt('输入新密码（≥6 位）：'); if(!p || p.length<6) return false; this.password.value=p;">
-                      <input type="hidden" name="id" th:value="${u.id}">
-                      <input type="hidden" name="username" th:value="${u.username}">
-                      <input type="hidden" name="displayName" th:value="${u.displayName}">
-                      <input type="hidden" name="role" th:value="${u.role}">
-                      <input type="hidden" name="active" th:value="${u.isActive}">
-                      <input type="hidden" name="password">
-                      <button class="btn ghost sm">重置密码</button>
-                    </form>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+                      <form method="post" th:action="@{/system/users/save}" class="inline-form">
+                        <input type="hidden" name="id" th:value="${u.id}">
+                        <input type="hidden" name="username" th:value="${u.username}">
+                        <input type="hidden" name="role" th:value="${u.role}">
+                        <input type="hidden" name="active" th:value="${u.isActive} ? 'false' : 'true'">
+                        <input name="displayName" th:value="${u.displayName}" style="width:84px">
+                        <input type="password" name="password" placeholder="新密码" style="width:90px" th:if="${false}">
+                        <button class="btn ghost sm" th:text="${u.isActive} ? '停用' : '启用'"></button>
+                      </form>
+                      <form method="post" th:action="@{/system/users/save}" class="inline-form"
+                            onsubmit="var p=prompt('输入新密码（≥6 位）：'); if(!p || p.length<6) return false; this.password.value=p;">
+                        <input type="hidden" name="id" th:value="${u.id}">
+                        <input type="hidden" name="username" th:value="${u.username}">
+                        <input type="hidden" name="displayName" th:value="${u.displayName}">
+                        <input type="hidden" name="role" th:value="${u.role}">
+                        <input type="hidden" name="active" th:value="${u.isActive}">
+                        <input type="hidden" name="password">
+                        <button class="btn ghost sm">重置密码</button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               </tbody>
