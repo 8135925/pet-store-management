@@ -4,27 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>登录 · 宠物店管理系统</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
   <link rel="stylesheet" th:href="@{/css/theme.css}">
 </head>
 <body>
-<div class="login-wrap">
-  <div class="login-box">
-    <div class="logo-big"><i data-lucide="paw-print"></i></div>
-    <h1>宠物店管理系统</h1>
-    <div class="alert err" th:if="${errMsg != null}" th:text="${errMsg}"></div>
-    <form method="post" th:action="@{/login}">
-      <div class="field">
-        <label>用户名</label>
-        <input type="text" name="username" required autofocus th:value="${username != null ? username : 'admin'}" autocomplete="username">
-      </div>
-      <div class="field">
-        <label>密码</label>
-        <input type="password" name="password" required value="123456" autocomplete="current-password">
-      </div>
-      <button type="submit" class="btn lg" style="width:100%">登 录</button>
-    </form>
-    <p class="small muted mt16" style="text-align:center">首次使用默认账号 admin / 123456，登录后请修改密码</p>
+<div class="login-split">
+
+  <!-- 左侧：动态宠物场景 -->
+  <div class="login-hero">
+    <div class="hero-brand">
+      <span class="logo-mark"><svg viewBox="0 0 64 64" class="paw-svg"><rect width="64" height="64" rx="14" fill="#3E6AE1"/><ellipse cx="32" cy="41" rx="13" ry="10.5" fill="#fff"/><ellipse cx="16" cy="27" rx="6.2" ry="7.6" fill="#fff"/><ellipse cx="26" cy="19.5" rx="6" ry="8" fill="#fff"/><ellipse cx="38" cy="19.5" rx="6" ry="8" fill="#fff"/><ellipse cx="48" cy="27" rx="6.2" ry="7.6" fill="#fff"/></svg></span>
+      <span>宠物店管理系统</span>
+    </div>
+
+    <div class="hero-stage">
+      <!-- 飘动的爪印 -->
+      <svg class="float-paw fp1" viewBox="0 0 64 64"><ellipse cx="32" cy="41" rx="13" ry="10.5"/><ellipse cx="16" cy="27" rx="6.2" ry="7.6"/><ellipse cx="26" cy="19.5" rx="6" ry="8"/><ellipse cx="38" cy="19.5" rx="6" ry="8"/><ellipse cx="48" cy="27" rx="6.2" ry="7.6"/></svg>
+      <svg class="float-paw fp2" viewBox="0 0 64 64"><ellipse cx="32" cy="41" rx="13" ry="10.5"/><ellipse cx="16" cy="27" rx="6.2" ry="7.6"/><ellipse cx="26" cy="19.5" rx="6" ry="8"/><ellipse cx="38" cy="19.5" rx="6" ry="8"/><ellipse cx="48" cy="27" rx="6.2" ry="7.6"/></svg>
+      <svg class="float-paw fp3" viewBox="0 0 64 64"><ellipse cx="32" cy="41" rx="13" ry="10.5"/><ellipse cx="16" cy="27" rx="6.2" ry="7.6"/><ellipse cx="26" cy="19.5" rx="6" ry="8"/><ellipse cx="38" cy="19.5" rx="6" ry="8"/><ellipse cx="48" cy="27" rx="6.2" ry="7.6"/></svg>
+      <svg class="float-paw fp4" viewBox="0 0 64 64"><ellipse cx="32" cy="41" rx="13" ry="10.5"/><ellipse cx="16" cy="27" rx="6.2" ry="7.6"/><ellipse cx="26" cy="19.5" rx="6" ry="8"/><ellipse cx="38" cy="19.5" rx="6" ry="8"/><ellipse cx="48" cy="27" rx="6.2" ry="7.6"/></svg>
+
+      <!-- 小狗：身体浮动 / 摇尾 / 眨眼 / 耳朵抖动 -->
+      <svg class="dog" viewBox="0 0 360 320" aria-label="一只摇尾巴的小狗">
+        <ellipse class="dog-shadow" cx="180" cy="290" rx="118" ry="13" fill="#E3E6EA"/>
+        <g class="dog-bob">
+          <!-- 尾巴 -->
+          <path class="dog-tail" d="M96 208 C58 206 40 178 44 150" stroke="#B08E6A" stroke-width="22"
+                stroke-linecap="round" fill="none"/>
+          <!-- 身体 -->
+          <ellipse cx="182" cy="200" rx="104" ry="80" fill="#D8BFA3"/>
+          <!-- 后腿 -->
+          <rect x="108" y="238" width="34" height="46" rx="16" fill="#C9AE8F"/>
+          <rect x="222" y="238" width="34" height="46" rx="16" fill="#C9AE8F"/>
+          <!-- 胸毛 -->
+          <ellipse cx="182" cy="212" rx="58" ry="58" fill="#EFE3D2"/>
+          <!-- 项圈 -->
+          <path d="M120 154 Q182 178 244 154 L244 170 Q182 196 120 170 Z" fill="#3E6AE1"/>
+          <circle cx="182" cy="186" r="12" fill="#2F55C4"/>
+          <circle cx="182" cy="186" r="5" fill="#fff"/>
+          <!-- 头 -->
+          <g class="dog-head">
+            <ellipse cx="182" cy="104" rx="82" ry="74" fill="#D8BFA3"/>
+            <!-- 耳朵 -->
+            <path class="ear-l" d="M116 66 C82 44 56 66 62 112 C66 144 92 152 104 128 Z" fill="#A9855F"/>
+            <path class="ear-r" d="M248 66 C282 44 308 66 302 112 C298 144 272 152 260 128 Z" fill="#A9855F"/>
+            <!-- 脸 -->
+            <ellipse cx="182" cy="126" rx="46" ry="36" fill="#EFE3D2"/>
+            <ellipse class="eye" cx="152" cy="94" rx="7.5" ry="8.5" fill="#171A20"/>
+            <ellipse class="eye" cx="212" cy="94" rx="7.5" ry="8.5" fill="#171A20"/>
+            <ellipse cx="182" cy="116" rx="13" ry="9.5" fill="#171A20"/>
+            <path d="M182 124 L182 134 M164 140 Q182 152 200 140" stroke="#171A20" stroke-width="4"
+                  stroke-linecap="round" fill="none"/>
+            <path class="tongue" d="M176 146 Q182 172 194 146 Z" fill="#E88A96"/>
+          </g>
+        </g>
+      </svg>
+
+      <h1 class="hero-title">每一只毛孩子，都有清楚的台账</h1>
+      <p class="hero-sub">一人多宠 · 次卡余量 · 疫苗到期 · 寄养预约</p>
+    </div>
   </div>
+
+  <!-- 右侧：登录表单 -->
+  <div class="login-form-side">
+    <div class="form-inner">
+      <h2 class="form-title">欢迎回来</h2>
+      <p class="form-sub">登录门店工作台</p>
+
+      <div class="alert err" th:if="${errMsg != null}" th:text="${errMsg}"></div>
+
+      <form method="post" th:action="@{/login}">
+        <div class="field">
+          <label>用户名</label>
+          <input type="text" name="username" required autofocus th:value="${username != null ? username : 'admin'}" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input type="password" name="password" required value="123456" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn lg form-submit">登 录</button>
+      </form>
+
+      <p class="form-hint">首次使用默认账号 admin / 123456，登录后请修改密码</p>
+    </div>
+    <div class="form-foot">宠物店管理系统 · 单店版</div>
+  </div>
+
 </div>
 </body>
 </html>
