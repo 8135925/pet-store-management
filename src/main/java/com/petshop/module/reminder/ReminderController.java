@@ -71,11 +71,15 @@ public class ReminderController {
         }
         e.setPetId(petId);
         e.setEventType(eventType);
-        e.setHappenedOn(LocalDate.parse(happenedOn));
-        if (nextDueOn != null && !nextDueOn.trim().isEmpty()) {
-            e.setNextDueOn(LocalDate.parse(nextDueOn.trim()));
-        } else {
-            e.setNextDueOn(e.getHappenedOn().plusDays(PetEvent.defaultInterval(eventType)));
+        try {
+            e.setHappenedOn(LocalDate.parse(happenedOn.trim()));
+            if (nextDueOn != null && !nextDueOn.trim().isEmpty()) {
+                e.setNextDueOn(LocalDate.parse(nextDueOn.trim()));
+            } else {
+                e.setNextDueOn(e.getHappenedOn().plusDays(PetEvent.defaultInterval(eventType)));
+            }
+        } catch (Exception ex) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "日期格式不正确");
         }
         if (e.getNextDueOn().isBefore(e.getHappenedOn())) {
             throw new BizException(ErrorCode.PARAM_INVALID, "下次到期日不能早于发生日期");

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('审计日志')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">审计日志 <span class="sub">关键操作留痕，只增不改</span></h1>
+
+      <form class="toolbar" method="get" th:action="@{/system/audit}">
+        <select name="action">
+          <option value="">全部操作</option>
+          <option th:each="a : ${actions}" th:value="${a.key}"
+                  th:selected="${action != null and action == a.key}" th:text="${a.value}"></option>
+        </select>
+        <input class="input" type="text" name="operator" placeholder="操作人" th:value="${operator}" style="width:140px">
+        <input type="date" class="input" name="from" th:value="${from}">
+        <span class="muted">至</span>
+        <input type="date" class="input" name="to" th:value="${to}">
+        <button class="btn ghost" type="submit">查询</button>
+        <a class="btn ghost" th:href="@{/system/audit}">重置</a>
+      </form>
+
+      <div class="card">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead>
+            <tr><th>时间</th><th>操作</th><th>对象</th><th>对象 ID</th><th>操作人</th><th>IP</th><th>变更前</th><th>变更后</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${rows}">
+              <td class="small" th:text="${r['created_at']}"></td>
+              <td>
+                <span class="badge primary"
+                      th:text="${actions.containsKey(r['action']) ? actions.get(r['action']) : r['action']}"></span>
+              </td>
+              <td class="small" th:text="${r['target_type']}"></td>
+              <td class="small" th:text="${r['target_id']}"></td>
+              <td th:text="${r['operator']}"></td>
+              <td class="small muted" th:text="${r['ip']}"></td>
+              <td class="small muted" th:text="${#strings.abbreviate(r['before_json'], 60)}"></td>
+              <td class="small muted" th:text="${#strings.abbreviate(r['after_json'], 60)}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(rows)}"><td colspan="8" class="muted">没有符合条件的审计记录</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <nav class="pager" th:if="${pages > 1}">
+          <span th:text="${'共 ' + total + ' 条 / ' + pages + ' 页'}"></span>
+          <span style="flex:1"></span>
+          <a th:if="${page > 1}"
+             th:href="@{/system/audit(page=${page - 1},action=${action},operator=${operator},from=${from},to=${to})}">上一页</a>
+          <span class="cur" th:text="${page}"></span>
+          <a th:if="${page < pages}"
+             th:href="@{/system/audit(page=${page + 1},action=${action},operator=${operator},from=${from},to=${to})}">下一页</a>
+        </nav>
+        <div class="pager" th:if="${pages <= 1}" th:text="${'共 ' + total + ' 条'}"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

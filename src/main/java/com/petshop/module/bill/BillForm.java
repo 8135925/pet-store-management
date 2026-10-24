@@ -13,6 +13,8 @@ public class BillForm {
     private String payMethod;
     private String requestId;
     private String remark;
+    /** v1.1：来源预约（到店转开单），结算成功后回写 DONE */
+    private Long appointmentId;
 
     public static class Item {
         private String itemType;   // SERVICE / PRODUCT
@@ -21,6 +23,11 @@ public class BillForm {
         private String sizeTier;
         private Long cardId;       // 非空表示用卡抵扣
         private int qty;
+        /** v1.2：本行服务人员，提成依据；为空表示不提成 */
+        private Long staffId;
+
+        public Long getStaffId() { return staffId; }
+        public void setStaffId(Long staffId) { this.staffId = staffId; }
 
         public String getItemType() { return itemType; }
         public void setItemType(String itemType) { this.itemType = itemType; }
@@ -52,4 +59,6 @@ public class BillForm {
     public void setRequestId(String requestId) { this.requestId = requestId; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public Long getAppointmentId() { return appointmentId; }
+    public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
 }

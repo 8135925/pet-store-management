@@ -1,5 +1,6 @@
 package com.petshop.module.system;
 
+import com.petshop.common.BizException;
 import com.petshop.common.SessionUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -39,13 +41,16 @@ public class SystemController {
 
     @PostMapping("/login")
     public String login(@RequestParam String username, @RequestParam String password,
-                        HttpSession session, RedirectAttributes ra) {
+                        HttpServletRequest request, RedirectAttributes ra) {
         try {
             SessionUser user = userService.login(username, password);
+            HttpSession session = request.getSession(true);
+            // 防会话固定攻击：登录成功后更换 session id，旧 id 立即失效
+            request.changeSessionId();
             session.setAttribute("sessionUser", user);
             return "redirect:/";
-        } catch (Exception e) {
-            ra.addFlashAttribute("errMsg", "用户名或密码错误");
+        } catch (BizException e) {
+            ra.addFlashAttribute("errMsg", e.getMessage());
             ra.addFlashAttribute("username", username);
             return "redirect:/login";
         }

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.inventory.InventoryMapper">
+
+    <!-- ==================== 供应商 ==================== -->
+
+    <insert id="insertSupplier" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO supplier(name, contact, phone, address, main_category, remark, is_active, created_at)
+        VALUES (#{name}, #{contact}, #{phone}, #{address}, #{mainCategory}, #{remark}, #{isActive}, #{createdAt})
+    </insert>
+
+    <update id="updateSupplier">
+        UPDATE supplier SET name = #{name}, contact = #{contact}, phone = #{phone},
+               address = #{address}, main_category = #{mainCategory}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setSupplierActive">
+        UPDATE supplier SET is_active = #{active} WHERE id = #{id}
+    </update>
+
+    <select id="findSupplierById" resultType="com.petshop.module.inventory.Supplier">
+        SELECT * FROM supplier WHERE id = #{id}
+    </select>
+
+    <select id="findAllSuppliers" resultType="com.petshop.module.inventory.Supplier">
+        SELECT * FROM supplier ORDER BY is_active DESC, id DESC
+    </select>
+
+    <select id="findActiveSuppliers" resultType="com.petshop.module.inventory.Supplier">
+        SELECT * FROM supplier WHERE is_active = 1 ORDER BY name
+    </select>
+
+    <select id="countSupplierByName" resultType="int">
+        SELECT COUNT(*) FROM supplier
+        WHERE name = #{name}
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>
+    </select>
+
+    <!-- ==================== 采购单 ==================== -->
+
+    <insert id="insertPurchase" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_order(order_no, supplier_id, status, total_cost_cent, item_count,
+                                   received_at, operator, remark, created_at, created_by)
+        VALUES (#{orderNo}, #{supplierId}, #{status}, #{totalCostCent}, #{itemCount},
+                #{receivedAt}, #{operator}, #{remark}, #{createdAt}, #{createdBy})
+    </insert>
+
+    <insert id="insertPurchaseItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_item(purchase_id, product_id, qty, unit_cost_cent, amount_cent,
+                                  batch_no, expire_on, remark)
+        VALUES (#{purchaseId}, #{productId}, #{qty}, #{unitCostCent}, #{amountCent},
+                #{batchNo}, #{expireOn}, #{remark})
+    </insert>
+
+    <update id="updatePurchaseTotal">
+        UPDATE purchase_order SET total_cost_cent = #{totalCostCent}, item_count = #{itemCount}
+        WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <update id="updatePurchaseDraft">
+        UPDATE purchase_order SET supplier_id = #{supplierId}, remark = #{remark},
+               total_cost_cent = #{totalCostCent}, item_count = #{itemCount}
+        WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <select id="findPurchaseById" resultType="com.petshop.module.inventory.PurchaseOrder">
+        SELECT o.*, s.name AS supplier_name
+        FROM purchase_order o JOIN supplier s ON s.id = o.supplier_id
+        WHERE o.id = #{id}
+    </select>
+
+    <select id="findPurchaseItems" resultType="com.petshop.module.inventory.PurchaseItem">
+        SELECT i.*, p.name AS product_name, p.spec AS product_spec
+        FROM purchase_item i JOIN product p ON p.id = i.product_id
+        WHERE i.purchase_id = #{purchaseId}
+        ORDER BY i.id
+    </select>
+
+    <select id="searchPurchases" resultType="com.petshop.module.inventory.PurchaseOrder">
+        SELECT o.*, s.name AS supplier_name
+        FROM purchase_order o JOIN supplier s ON s.id = o.supplier_id
+        <where>
+            <if test="status != null and status != ''">AND o.status = #{status}</if>
+            <if test="from != null and from != ''">AND date(o.created_at) &gt;= #{from}</if>
+            <if test="to != null and to != ''">AND date(o.created_at) &lt;= #{to}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_no LIKE '%' || #{keyword} || '%' OR s.name LIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+        ORDER BY o.id DESC LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPurchases" resultType="long">
+        SELECT COUNT(*)
+        FROM purchase_order o JOIN supplier s ON s.id = o.supplier_id
+        <where>
+            <if test="status != null and status != ''">AND o.status = #{status}</if>
+            <if test="from != null and from != ''">AND date(o.created_at) &gt;= #{from}</if>
+            <if test="to != null and to != ''">AND date(o.created_at) &lt;= #{to}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_no LIKE '%' || #{keyword} || '%' OR s.name LIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+    </select>
+
+    <update id="receivePurchase">
+        UPDATE purchase_order SET status = 'RECEIVED', received_at = datetime('now','localtime'),
+               operator = #{operator}
+        WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <update id="cancelPurchase">
+        UPDATE purchase_order SET status = 'CANCELLED' WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <delete id="deletePurchaseItems">
+        DELETE FROM purchase_item WHERE purchase_id = #{purchaseId}
+    </delete>
+
+    <select id="countPurchaseByPrefix" resultType="long">
+        SELECT COUNT(*) FROM purchase_order WHERE order_no LIKE #{prefix} || '%'
+    </select>
+
+    <!-- ==================== 批次 ==================== -->
+
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO product_batch(product_id, purchase_item_id, batch_no, expire_on, qty_in, qty_left,
+                                  unit_cost_cent, source, status, received_at, created_at)
+        VALUES (#{productId}, #{purchaseItemId}, #{batchNo}, #{expireOn}, #{qtyIn}, #{qtyLeft},
+                #{unitCostCent}, #{source}, #{status}, #{receivedAt}, #{createdAt})
+    </insert>
+
+    <select id="findBatchById" resultType="com.petshop.module.inventory.ProductBatch">
+        SELECT b.*, p.name AS product_name, p.spec AS product_spec
+        FROM product_batch b JOIN product p ON p.id = b.product_id
+        WHERE b.id = #{id}
+    </select>
+
+    <!-- FEFO：有有效期的排前面（按有效期升序），无有效期的按入库时间先进先出 -->
+    <select id="findAvailableBatches" resultType="com.petshop.module.inventory.ProductBatch">
+        SELECT * FROM product_batch
+        WHERE product_id = #{productId}
+          AND status = 'NORMAL' AND qty_left &gt; 0
+          AND (expire_on IS NULL OR expire_on &gt;= #{today})
+        ORDER BY (expire_on IS NULL) ASC, expire_on ASC, received_at ASC, id ASC
+    </select>
+
+    <select id="findBatches" resultType="com.petshop.module.inventory.ProductBatch">
+        SELECT b.*, p.name AS product_name, p.spec AS product_spec
+        FROM product_batch b JOIN product p ON p.id = b.product_id
+        <where>
+            <if test="productId != null">AND b.product_id = #{productId}</if>
+            <if test="status != null and status != ''">AND b.status = #{status}</if>
+            <if test="expiringDays != null">
+                AND b.expire_on IS NOT NULL
+                AND b.expire_on &lt;= date('now','localtime','+' || #{expiringDays} || ' day')
+            </if>
+        </where>
+        ORDER BY (b.expire_on IS NULL) ASC, b.expire_on ASC, b.id DESC
+        LIMIT 500
+    </select>
+
+    <select id="countBatches" resultType="int">
+        SELECT COUNT(*) FROM product_batch WHERE product_id = #{productId} AND status &lt;&gt; 'VOID'
+    </select>
+
+    <select id="sumQtyLeft" resultType="long">
+        SELECT IFNULL(SUM(qty_left), 0) FROM product_batch
+        WHERE product_id = #{productId} AND status &lt;&gt; 'VOID'
+    </select>
+
+    <update id="deductBatch">
+        UPDATE product_batch
+        SET qty_left = qty_left - #{qty},
+            status = CASE WHEN qty_left - #{qty} = 0 THEN 'EXHAUSTED' ELSE status END
+        WHERE id = #{id} AND status = 'NORMAL' AND qty_left &gt;= #{qty}
+    </update>
+
+    <update id="addBatchQty">
+        UPDATE product_batch
+        SET qty_left = qty_left + #{qty},
+            status = CASE WHEN status = 'EXHAUSTED' THEN 'NORMAL' ELSE status END
+        WHERE id = #{id} AND status &lt;&gt; 'VOID'
+    </update>
+
+    <update id="setBatchStatus">
+        UPDATE product_batch SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <!-- ==================== 盘点 ==================== -->
+
+    <insert id="insertStockTake" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stock_take(take_no, scope, scope_value, status, item_count, diff_count,
+                               diff_amount_cent, started_at, operator, remark, created_at)
+        VALUES (#{takeNo}, #{scope}, #{scopeValue}, #{status}, #{itemCount}, #{diffCount},
+                #{diffAmountCent}, #{startedAt}, #{operator}, #{remark}, #{createdAt})
+    </insert>
+
+    <insert id="insertStockTakeItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stock_take_item(take_id, product_id, system_qty, counted_qty, diff_qty,
+                                    cost_cent, reason, remark)
+        VALUES (#{takeId}, #{productId}, #{systemQty}, #{countedQty}, #{diffQty},
+                #{costCent}, #{reason}, #{remark})
+    </insert>
+
+    <select id="findStockTakeById" resultType="com.petshop.module.inventory.StockTake">
+        SELECT * FROM stock_take WHERE id = #{id}
+    </select>
+
+    <select id="findStockTakeItems" resultType="com.petshop.module.inventory.StockTakeItem">
+        SELECT i.*, p.name AS product_name, p.spec AS product_spec
+        FROM stock_take_item i JOIN product p ON p.id = i.product_id
+        WHERE i.take_id = #{takeId}
+        ORDER BY p.category, p.name
+    </select>
+
+    <select id="searchStockTakes" resultType="com.petshop.module.inventory.StockTake">
+        SELECT * FROM stock_take
+        <where>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+        </where>
+        ORDER BY id DESC LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countStockTakes" resultType="long">
+        SELECT COUNT(*) FROM stock_take
+        <where>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="countOpenTakeByProduct" resultType="int">
+        SELECT COUNT(*) FROM stock_take_item i JOIN stock_take t ON t.id = i.take_id
+        WHERE i.product_id = #{productId} AND t.status = 'COUNTING'
+    </select>
+
+    <update id="updateTakeItemCounted">
+        UPDATE stock_take_item SET counted_qty = #{countedQty}, reason = #{reason}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateTakeItemDiff">
+        UPDATE stock_take_item SET diff_qty = #{diffQty} WHERE id = #{id}
+    </update>
+
+    <update id="confirmStockTake">
+        UPDATE stock_take SET status = 'CONFIRMED', confirmed_at = #{confirmedAt},
+               diff_count = #{diffCount}, diff_amount_cent = #{diffAmountCent},
+               operator = #{operator}
+        WHERE id = #{id} AND status = 'COUNTING'
+    </update>
+
+    <update id="cancelStockTake">
+        UPDATE stock_take SET status = 'CANCELLED' WHERE id = #{id} AND status = 'COUNTING'
+    </update>
+
+    <select id="findTakeScopeProducts" resultType="com.petshop.module.product.Product">
+        SELECT * FROM product
+        <where>
+            <if test="scope == 'CATEGORY'">AND category = #{scopeValue}</if>
+            <if test="scope == 'SELECTED'">
+                AND INSTR(',' || #{scopeValue} || ',', ',' || id || ',') &gt; 0
+            </if>
+        </where>
+        ORDER BY category, name
+    </select>
+
+    <select id="findRecentStockTakes" resultType="com.petshop.module.inventory.StockTake">
+        SELECT * FROM stock_take ORDER BY id DESC LIMIT #{limit}
+    </select>
+
+    <select id="countTakeByPrefix" resultType="long">
+        SELECT COUNT(*) FROM stock_take WHERE take_no LIKE #{prefix} || '%'
+    </select>
+
+</mapper>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('预约看板')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">预约看板
+        <a class="btn primary sm" href="/appointments/new">＋ 新建预约</a>
+      </h1>
+
+      <div class="card" style="max-width:900px">
+        <div class="card-body">
+          <form class="toolbar" method="get" action="/appointments">
+            <input type="date" class="input" name="date" th:value="${date}">
+            <button class="btn ghost" type="submit">查看</button>
+          </form>
+
+          <div th:if="${#lists.size(stale) > 0}" class="mt16">
+            <h2 class="sub">⚠ 逾期未处理（<span th:text="${#lists.size(stale)}"></span>）</h2>
+            <table class="tbl">
+              <thead><tr><th>日期</th><th>时段</th><th>宠物</th><th>项目</th><th>主人</th><th></th></tr></thead>
+              <tbody>
+                <tr th:each="a : ${stale}" class="row-red">
+                  <td th:text="${a.appointDate}"></td>
+                  <td th:text="${a.slot}"></td>
+                  <td th:text="${a.petName}"></td>
+                  <td th:text="${a.serviceName}"></td>
+                  <td th:text="${a.ownerName}"></td>
+                  <td>
+                    <form method="post" th:action="@{/appointments/{id}/noshow(id=${a.id})}" style="display:inline">
+                      <button class="btn ghost sm">标未到</button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2 class="sub mt16" th:text="${date} + ' 预约'"></h2>
+          <table class="tbl">
+            <thead><tr><th>时段</th><th>宠物</th><th>项目</th><th>主人/电话</th><th>档位</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr th:each="a : ${items}">
+                <td><b th:text="${a.slot}"></b></td>
+                <td><b th:text="${a.petName}"></b> <span class="muted small" th:text="${a.breed}"></span></td>
+                <td th:text="${a.serviceName}"></td>
+                <td><span th:text="${a.ownerName}"></span>
+                    <a class="small" th:href="'tel:' + ${a.ownerPhone}" th:text="${a.ownerPhone}"></a></td>
+                <td th:text="${ui.tier(a.sizeTier)}"></td>
+                <td><span class="badge" th:classappend="${a.status == 'BOOKED'} ? 'primary' : (${a.status == 'ARRIVED'} ? 'ok' : (${a.status == 'CANCELLED' or a.status == 'NO_SHOW'} ? 'danger' : ''))"
+                          th:text="${ui.apptStatus(a.status)}"></span></td>
+                <td>
+                  <th:block th:if="${a.status == 'BOOKED'}">
+                    <form method="post" th:action="@{/appointments/{id}/arrive(id=${a.id})}" style="display:inline">
+                      <button class="btn primary sm">到店</button>
+                    </form>
+                    <form method="post" th:action="@{/appointments/{id}/cancel(id=${a.id})}" style="display:inline"
+                          onsubmit="return confirmAct('确认取消该预约？')">
+                      <button class="btn ghost sm">取消</button>
+                    </form>
+                  </th:block>
+                  <a th:if="${a.status == 'ARRIVED'}" class="btn primary sm"
+                     th:href="@{/bills/new(customerId=${a.customerId},appointmentId=${a.id})}">转开单</a>
+                  <a th:if="${a.status == 'DONE' and a.billId != null}" class="btn ghost sm"
+                     th:href="@{/bills/{id}(id=${a.billId})}" th:text="'单据 ' + ${a.billNo}"></a>
+                  <span th:if="${a.status == 'CANCELLED' or a.status == 'NO_SHOW'}" class="muted">—</span>
+                </td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(items)}"><td colspan="7" class="muted">该日暂无预约</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

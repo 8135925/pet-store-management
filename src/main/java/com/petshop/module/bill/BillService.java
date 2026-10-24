@@ -35,6 +35,13 @@ public class BillService {
 
     private static final Logger log = LoggerFactory.getLogger(BillService.class);
 
+    /** 单行数量上限：防止 int 金额溢出与误输入 */
+    private static final int MAX_LINE_QTY = 9999;
+    /** 单据明细行数上限：防止超大批量请求拖垮服务 */
+    private static final int MAX_LINE_COUNT = 200;
+    /** 分页每页上限 */
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final BillMapper billMapper;
     private final BillItemMapper itemMapper;
     private final ServiceItemMapper serviceItemMapper;
@@ -45,12 +52,18 @@ public class BillService {
     private final com.petshop.module.card.CardLogMapper cardLogMapper;
     private final ProductService productService;
     private final ConfigService configService;
+    private final com.petshop.module.appointment.AppointmentMapper appointmentMapper;
+    private final com.petshop.module.customer.CustomerMapper customerMapper;
+    private final com.petshop.module.staff.CommissionService commissionService;
 
     public BillService(BillMapper billMapper, BillItemMapper itemMapper,
                        ServiceItemMapper serviceItemMapper, ProductMapper productMapper,
                        PetMapper petMapper, CardService cardService, CustomerCardMapper cardMapper,
                        com.petshop.module.card.CardLogMapper cardLogMapper,
-                       ProductService productService, ConfigService configService) {
+                       ProductService productService, ConfigService configService,
+                       com.petshop.module.appointment.AppointmentMapper appointmentMapper,
+                       com.petshop.module.customer.CustomerMapper customerMapper,
+                       com.petshop.module.staff.CommissionService commissionService) {
         this.billMapper = billMapper;
         this.itemMapper = itemMapper;
         this.serviceItemMapper = serviceItemMapper;
@@ -61,6 +74,9 @@ public class BillService {
         this.cardLogMapper = cardLogMapper;
         this.productService = productService;
         this.configService = configService;
+        this.appointmentMapper = appointmentMapper;
+        this.customerMapper = customerMapper;
+        this.commissionService = commissionService;
     }
 
     // ---------------- 结账（F4 主流程） ----------------
@@ -70,11 +86,15 @@ public class BillService {
         LocalDateTime now = LocalDateTime.now();
         LocalDate businessDate = BusinessDate.of(now);
 
-        // 1. 幂等：requestId 已存在 → 直接返回已有单
-        if (form.getRequestId() != null && !form.getRequestId().trim().isEmpty()) {
-            Bill exists = billMapper.findByRequestId(form.getRequestId().trim());
+        // 1. 幂等：requestId 已存在 → 直接返回已有单（统一 trim，避免带空格绕过唯一索引）
+        String requestId = form.getRequestId() == null ? null : form.getRequestId().trim();
+        if (requestId != null && requestId.isEmpty()) {
+            requestId = null;
+        }
+        if (requestId != null) {
+            Bill exists = billMapper.findByRequestId(requestId);
             if (exists != null) {
-                log.info("重复提交被幂等拦截 requestId={}", form.getRequestId());
+                log.info("重复提交被幂等拦截 requestId={}", requestId);
                 return exists.getId();
             }
         }
@@ -83,13 +103,22 @@ public class BillService {
         if (form.getCustomerId() == null) {
             throw new BizException(ErrorCode.PARAM_INVALID, "必须选择客户");
         }
+        if (customerMapper.findById(form.getCustomerId()) == null) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "客户不存在");
+        }
         List<BillForm.Item> items = form.getItems();
         if (items == null || items.isEmpty()) {
             throw new BizException(ErrorCode.PARAM_INVALID, "单据明细不能为空");
         }
+        if (items.size() > MAX_LINE_COUNT) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "单据明细行数不能超过 " + MAX_LINE_COUNT);
+        }
         String payMethod = form.getPayMethod();
         if (payMethod == null || payMethod.trim().isEmpty()) {
             throw new BizException(ErrorCode.PARAM_INVALID, "必须选择收款方式");
+        }
+        if (!isValidPayMethod(payMethod)) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "收款方式不正确");
         }
 
         // 3. 逐条重算明细金额（不信任前端金额）
@@ -105,6 +134,9 @@ public class BillService {
         for (int i = 0; i < n; i++) {
             BillForm.Item f = items.get(i);
             int qty = f.getQty() <= 0 ? 1 : f.getQty();
+            if (qty > MAX_LINE_QTY) {
+                throw new BizException(ErrorCode.PARAM_INVALID, "单行数量不能超过 " + MAX_LINE_QTY);
+            }
             if ("SERVICE".equals(f.getItemType())) {
                 hasService = true;
                 if (f.getRefId() == null) {
@@ -116,6 +148,10 @@ public class BillService {
                 Pet pet = petMapper.findById(f.getPetId());
                 if (pet == null) {
                     throw new BizException(ErrorCode.PET_REQUIRED);
+                }
+                // 服务必须记在实际主人名下，防止把别人宠物的服务挂到本单
+                if (!form.getCustomerId().equals(pet.getOwnerId())) {
+                    throw new BizException(ErrorCode.PARAM_INVALID, "所选宠物不属于该客户");
                 }
                 ServiceItem s = serviceItemMapper.findById(f.getRefId());
                 if (s == null) {
@@ -160,7 +196,14 @@ public class BillService {
             } else {
                 throw new BizException(ErrorCode.PARAM_INVALID, "明细类型不正确");
             }
-            amounts[i] = unitPrices[i] * qty;
+            long lineAmount = (long) unitPrices[i] * qty;
+            if (lineAmount > Integer.MAX_VALUE) {
+                throw new BizException(ErrorCode.PARAM_INVALID, "单行金额超出上限");
+            }
+            amounts[i] = (int) lineAmount;
+            if (total > Integer.MAX_VALUE - amounts[i]) {
+                throw new BizException(ErrorCode.PARAM_INVALID, "单据金额超出上限");
+            }
             total += amounts[i];
         }
 
@@ -197,9 +240,8 @@ public class BillService {
             receivable += amounts[i] - itemDiscount[i];
         }
 
-        // 6. 生成单号，先插主单占位
+        // 6. 生成单号，先插主单占位（撞单号 / 撞幂等键分别处理）
         Bill b = new Bill();
-        b.setBillNo(nextNoWithRetry("S", businessDate));
         b.setBillType("SALE");
         b.setCustomerId(form.getCustomerId());
         b.setPetId(form.getPetId());
@@ -210,19 +252,13 @@ public class BillService {
         b.setReceivedCent(receivable);
         b.setPayMethod(payMethod.trim());
         b.setBusinessDate(businessDate);
-        b.setRequestId(form.getRequestId());
+        b.setRequestId(requestId);
         b.setOperator(user.getDisplayName());
         b.setRemark(form.getRemark());
         b.setCreatedAt(now);
-        try {
-            billMapper.insert(b);
-        } catch (DuplicateKeyException e) {
-            // 唯一索引兜底：并发重复提交
-            Bill exists = billMapper.findByRequestId(form.getRequestId());
-            if (exists != null) {
-                return exists.getId();
-            }
-            throw e;
+        Long duplicatedBillId = insertBillWithRetry(b, businessDate, requestId);
+        if (duplicatedBillId != null) {
+            return duplicatedBillId;
         }
 
         // 7. 逐条处理明细：核销 / 扣库存 / 写明细
@@ -241,6 +277,7 @@ public class BillService {
             item.setUnitPriceCent(unitPrices[i]);
             item.setSortNo(i);
             item.setCardId(f.getCardId());
+            item.setStaffId(f.getStaffId());
 
             if (cardUsed[i]) {
                 // a) 次卡抵扣：扣次 → 明细金额记 0（BR-01/BR-02/BR-07）
@@ -252,8 +289,9 @@ public class BillService {
                 cardService.writeConsumeLog(f.getCardId(), b.getId(), item.getId(), fromGift, user, now);
             } else {
                 if ("PRODUCT".equals(f.getItemType())) {
-                    // b) 商品：扣库存 + 流水（BR-07）
-                    productService.deductForSale(f.getRefId(), qty, b.getId(), user.getDisplayName());
+                    // b) 商品：FEFO 扣批次 + 流水（BR-07 / BR-15）
+                    item.setBatchId(productService.deductForSale(
+                            f.getRefId(), qty, b.getId(), user.getDisplayName()));
                 }
                 item.setPaidByCard(false);
                 item.setAmountCent(amounts[i] - itemDiscount[i]);
@@ -262,8 +300,23 @@ public class BillService {
             }
         }
 
-        // 8. 结账
-        billMapper.settle(b.getId(), receivable, payMethod.trim(), now);
+        // 8. 结账（带状态条件，防止重复结账）
+        int settled = billMapper.settle(b.getId(), receivable, payMethod.trim(), now);
+        if (settled == 0) {
+            throw new BizException(ErrorCode.BILL_ALREADY_SETTLED);
+        }
+
+        // 9. 提成：按明细服务人员与规则生成记录（与结账同事务，BR-19/BR-20）
+        commissionService.recordForBill(b, itemMapper.findByBill(b.getId()), user);
+
+        // 10. 来源预约回写（v1.1 F9）：ARRIVED → DONE，与结账同一事务
+        if (form.getAppointmentId() != null) {
+            int rows = appointmentMapper.markDoneIfArrived(form.getAppointmentId(), b.getId(), form.getCustomerId());
+            if (rows == 0) {
+                throw new BizException(ErrorCode.APPOINTMENT_STATE_INVALID, "来源预约状态已变化，请刷新后重新开单");
+            }
+        }
+
         log.info("结账完成 billNo={} total={} discount={} receivable={} by={}",
                 b.getBillNo(), total, discount, receivable, user.getDisplayName());
         return b.getId();
@@ -294,7 +347,13 @@ public class BillService {
             throw new BizException(ErrorCode.BILL_NOT_TODAY);
         }
 
-        // 1. 还原核销次数：按流水 from_gift 精确还原（不能按当前开关重算）
+        // 1. 先原子置为 CANCELLED：并发双击时只有一个事务能成功，避免重复回补库存/次数
+        int rows = billMapper.cancel(billId, reason.trim(), LocalDateTime.now());
+        if (rows == 0) {
+            throw new BizException(ErrorCode.BILL_ALREADY_CANCELLED);
+        }
+
+        // 2. 还原核销次数：按流水 from_gift 精确还原（不能按当前开关重算）
         List<CardConsumeLog> logs = cardLogMapper.findConsumeByBill(billId);
         for (CardConsumeLog l : logs) {
             if (l.getFromGift()) {
@@ -304,14 +363,15 @@ public class BillService {
             }
         }
 
-        // 2. 回补库存 + 反向流水
+        // 3. 回补库存 + 反向流水（按原出库台账逐批回补）
         List<BillItem> productItems = itemMapper.findProductsByBill(billId);
         for (BillItem i : productItems) {
             productService.refundForCancel(i.getRefId(), i.getQty(), billId, user.getDisplayName());
         }
 
-        // 3. 单据置为 CANCELLED（终态）
-        billMapper.cancel(billId, reason.trim(), LocalDateTime.now());
+        // 4. 提成冲销：写负数记录，不删除原记录（BR-21）
+        commissionService.reverseForBill(b, user);
+
         log.info("反结账 billNo={} by={} reason={}", b.getBillNo(), user.getDisplayName(), reason);
     }
 
@@ -329,19 +389,49 @@ public class BillService {
     public Map<String, Object> search(LocalDate from, LocalDate to, Long customerId, Long petId,
                                       String keyword, String status, int page, int size) {
         int p = Math.max(page, 1);
+        int s = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        long offset = (long) (p - 1) * s;
+        if (offset > Integer.MAX_VALUE) {
+            offset = Integer.MAX_VALUE;
+        }
         String kw = keyword == null ? "" : keyword.trim();
         long total = billMapper.countSearch(from, to, customerId, petId, kw, status);
         List<Bill> rows = total == 0
                 ? new ArrayList<Bill>()
-                : billMapper.search(from, to, customerId, petId, kw, status, (p - 1) * size, size);
+                : billMapper.search(from, to, customerId, petId, kw, status, (int) offset, s);
         Map<String, Object> m = new HashMap<>();
-        m.put("pr", new com.petshop.common.PageResult<>(rows, total, p, size));
+        m.put("pr", new com.petshop.common.PageResult<>(rows, total, p, s));
         return m;
     }
 
-    private String nextNoWithRetry(String prefix, LocalDate businessDate) {
-        String no = cardService.nextBillNo(prefix, businessDate);
-        // 撞唯一索引的情况由 DuplicateKeyException 兜底（幂等返回或抛错重试一次）
-        return no;
+    /**
+     * 插入主单；单号并发撞唯一索引时换号重试。
+     * @return 非 null 表示命中幂等键，已存在同一请求的单据 id
+     */
+    private Long insertBillWithRetry(Bill b, LocalDate businessDate, String requestId) {
+        for (int attempt = 0; ; attempt++) {
+            b.setBillNo(cardService.nextBillNo("S", businessDate));
+            try {
+                billMapper.insert(b);
+                return null;
+            } catch (DuplicateKeyException e) {
+                if (requestId != null) {
+                    Bill exists = billMapper.findByRequestId(requestId);
+                    if (exists != null) {
+                        log.info("并发重复提交命中幂等键 requestId={}", requestId);
+                        return exists.getId();
+                    }
+                }
+                if (attempt >= 2) {
+                    throw e;
+                }
+                log.warn("单号冲突，重新生成：{}", b.getBillNo());
+            }
+        }
+    }
+
+    private boolean isValidPayMethod(String pm) {
+        return "CASH".equals(pm) || "WECHAT".equals(pm) || "ALIPAY".equals(pm)
+                || "BANK_CARD".equals(pm) || "OTHER".equals(pm);
     }
 }

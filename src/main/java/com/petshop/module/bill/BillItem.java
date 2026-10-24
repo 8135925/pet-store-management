@@ -16,10 +16,15 @@ public class BillItem {
     private boolean paidByCard;
     private Long cardId;
     private int sortNo;
+    /** v1.2：本行实际服务人员（提成依据） */
+    private Long staffId;
+    /** v1.2：整行来自单一批次时冗余记录；跨批次为 null，明细看台账 */
+    private Long batchId;
 
     /** 关联展示 */
     private String petName;
     private String cardNo;
+    private String staffName;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -53,4 +58,10 @@ public class BillItem {
     public void setPetName(String petName) { this.petName = petName; }
     public String getCardNo() { return cardNo; }
     public void setCardNo(String cardNo) { this.cardNo = cardNo; }
+    public Long getStaffId() { return staffId; }
+    public void setStaffId(Long staffId) { this.staffId = staffId; }
+    public Long getBatchId() { return batchId; }
+    public void setBatchId(Long batchId) { this.batchId = batchId; }
+    public String getStaffName() { return staffName; }
+    public void setStaffName(String staffName) { this.staffName = staffName; }
 }

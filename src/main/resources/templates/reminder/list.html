@@ -31,7 +31,9 @@
                 </td>
                 <td><b th:text="${e.petName}"></b> <span class="muted small" th:text="${ui.species(e.species)} + ' ' + ${e.breed}"></span></td>
                 <td><a th:href="@{'/customers/' + ${e.ownerId}}" th:text="${e.ownerName}"></a>
-                  <a th:href="'tel:' + ${e.ownerPhone}" class="btn ghost sm" th:text="${e.ownerPhone}"></a></td>
+                  <a th:href="'tel:' + ${e.ownerPhone}" class="btn ghost sm" th:text="${e.ownerPhone}"></a>
+                  <button type="button" class="btn ghost sm" th:attr="data-phone=${e.ownerPhone}"
+                          onclick="copyPhone(this)">复制</button></td>
                 <td th:text="${ui.eventType(e.eventType)}"></td>
                 <td th:text="${e.happenedOn}"></td>
                 <td class="small muted" th:text="${e.hospital} ?: '—'"></td>
@@ -66,5 +68,13 @@
     </div>
   </div>
 </div>
+<script>
+function copyPhone(btn) {
+  var p = btn.getAttribute('data-phone');
+  if (navigator.clipboard) { navigator.clipboard.writeText(p); }
+  btn.textContent = '已复制';
+  setTimeout(function () { btn.textContent = '复制'; }, 1200);
+}
+</script>
 </body>
 </html>

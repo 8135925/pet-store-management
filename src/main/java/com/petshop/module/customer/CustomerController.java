@@ -127,9 +127,13 @@ public class CustomerController {
         String kw = keyword == null ? "" : keyword.trim();
         int size = 20;
         long total = petMapper.countSearch(kw);
+        long offset = (long) (p - 1) * size;
+        if (offset > Integer.MAX_VALUE) {
+            offset = Integer.MAX_VALUE;
+        }
         List<Pet> rows = total == 0
                 ? java.util.Collections.<Pet>emptyList()
-                : petMapper.search(kw, (p - 1) * size, size);
+                : petMapper.search(kw, (int) offset, size);
         model.addAttribute("pr", new PageResult<>(rows, total, p, size));
         model.addAttribute("keyword", keyword);
         return "pet/list";

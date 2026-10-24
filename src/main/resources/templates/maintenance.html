@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('系统维护')"></head>
+<body>
+<div class="login-wrap">
+  <div class="login-box">
+    <div class="logo-big">🛠️</div>
+    <h1>系统维护中</h1>
+    <p class="small muted" th:if="${pending}">
+      备份恢复已准备就绪。请关闭服务并重新启动，启动时会自动替换数据库并保留一份恢复前的备份。
+    </p>
+    <p class="small muted" th:unless="${pending}">
+      未发现待执行的恢复任务，重启服务后即可正常使用。
+    </p>
+    <div class="alert ok">维护期间禁止任何写入操作，避免数据写入被替换的旧库。</div>
+    <form method="post" th:action="@{/system/restore/cancel}" th:if="${pending}"
+          onsubmit="return confirm('确认取消本次恢复？当前数据库将继续使用。')">
+      <button class="btn ghost lg" type="submit" style="width:100%">取消恢复并继续使用当前数据库</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -8,6 +8,9 @@
     <header th:replace="fragments/header :: header"></header>
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
+      <div class="toolbar" style="margin-bottom:8px">
+        <button type="button" class="btn ghost sm" data-back="/bills">← 返回单据查询</button>
+      </div>
 
       <div class="card" style="max-width:760px;margin:0 auto">
         <div class="card-body">

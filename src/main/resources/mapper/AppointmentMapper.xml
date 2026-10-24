@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.appointment.AppointmentMapper">
+
+    <resultMap id="apptMap" type="com.petshop.module.appointment.Appointment">
+        <id property="id" column="id"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="petId" column="pet_id"/>
+        <result property="serviceId" column="service_id"/>
+        <result property="appointDate" column="appoint_date"/>
+        <result property="slot" column="slot"/>
+        <result property="sizeTier" column="size_tier"/>
+        <result property="status" column="status"/>
+        <result property="billId" column="bill_id"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="petName" column="pet_name"/>
+        <result property="breed" column="breed"/>
+        <result property="ownerName" column="owner_name"/>
+        <result property="ownerPhone" column="owner_phone"/>
+        <result property="serviceName" column="service_name"/>
+        <result property="billNo" column="bill_no"/>
+    </resultMap>
+
+    <sql id="base">
+        SELECT a.*, p.name AS pet_name, p.breed,
+               c.name AS owner_name, c.phone AS owner_phone,
+               s.name AS service_name,
+               b.bill_no AS bill_no
+          FROM appointment a
+          JOIN pet p ON p.id = a.pet_id
+          JOIN customer c ON c.id = a.customer_id
+          JOIN service_item s ON s.id = a.service_id
+          LEFT JOIN bill b ON b.id = a.bill_id
+    </sql>
+
+    <select id="findById" resultMap="apptMap">
+        <include refid="base"/> WHERE a.id = #{id}
+    </select>
+
+    <select id="findByDate" resultMap="apptMap">
+        <include refid="base"/>
+        WHERE a.appoint_date = #{date}
+        ORDER BY a.slot ASC, a.id ASC
+    </select>
+
+    <select id="countSlot" resultType="int">
+        SELECT COUNT(*) FROM appointment
+        WHERE appoint_date = #{date} AND slot = #{slot}
+          AND status IN ('BOOKED', 'ARRIVED')
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO appointment(customer_id, pet_id, service_id, appoint_date, slot, size_tier,
+               status, remark, created_at, created_by)
+        VALUES(#{customerId}, #{petId}, #{serviceId}, #{appointDate}, #{slot}, #{sizeTier},
+               #{status}, #{remark}, #{createdAt}, #{createdBy})
+    </insert>
+
+    <!-- 状态机流转只允许从 BOOKED 出发，避免并发/重复点击把终态改回去 -->
+    <update id="updateStatus">
+        UPDATE appointment SET status = #{status} WHERE id = #{id} AND status = 'BOOKED'
+    </update>
+
+    <update id="markDone">
+        UPDATE appointment SET status = 'DONE', bill_id = #{billId}
+        WHERE id = #{id} AND status = 'ARRIVED'
+    </update>
+
+    <update id="markDoneIfArrived">
+        UPDATE appointment SET status = 'DONE', bill_id = #{billId}
+        WHERE id = #{id} AND status = 'ARRIVED' AND customer_id = #{customerId}
+    </update>
+
+    <select id="findStale" resultMap="apptMap">
+        <include refid="base"/>
+        WHERE a.status = 'BOOKED' AND a.appoint_date &lt; #{today}
+        ORDER BY a.appoint_date ASC
+    </select>
+</mapper>

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.staff.CommissionMapper">
+
+    <!-- ==================== 员工 ==================== -->
+
+    <insert id="insertStaff" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO staff(name, role, phone, hire_on, leave_on, is_active, created_at)
+        VALUES (#{name}, #{role}, #{phone}, #{hireOn}, #{leaveOn}, #{isActive}, #{createdAt})
+    </insert>
+
+    <update id="updateStaff">
+        UPDATE staff SET name = #{name}, role = #{role}, phone = #{phone},
+               hire_on = #{hireOn}, leave_on = #{leaveOn}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setStaffActive">
+        UPDATE staff SET is_active = #{active} WHERE id = #{id}
+    </update>
+
+    <select id="findStaffById" resultType="com.petshop.module.staff.Staff">
+        SELECT * FROM staff WHERE id = #{id}
+    </select>
+
+    <select id="findAllStaff" resultType="com.petshop.module.staff.Staff">
+        SELECT * FROM staff ORDER BY is_active DESC, id DESC
+    </select>
+
+    <select id="findActiveStaff" resultType="com.petshop.module.staff.Staff">
+        SELECT * FROM staff WHERE is_active = 1 ORDER BY id
+    </select>
+
+    <select id="findStaffIdByUserId" resultType="long">
+        SELECT staff_id FROM sys_user WHERE id = #{userId} AND staff_id IS NOT NULL
+    </select>
+
+    <!-- ==================== 规则 ==================== -->
+
+    <insert id="insertRule" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO commission_rule(scope, ref_id, staff_role, ratio_bp, fixed_cent,
+                                    effective_from, effective_to, is_active, remark, created_at)
+        VALUES (#{scope}, #{refId}, #{staffRole}, #{ratioBp}, #{fixedCent},
+                #{effectiveFrom}, #{effectiveTo}, #{isActive}, #{remark}, #{createdAt})
+    </insert>
+
+    <update id="updateRule">
+        UPDATE commission_rule SET scope = #{scope}, ref_id = #{refId}, staff_role = #{staffRole},
+               ratio_bp = #{ratioBp}, fixed_cent = #{fixedCent}, effective_from = #{effectiveFrom},
+               effective_to = #{effectiveTo}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setRuleActive">
+        UPDATE commission_rule SET is_active = #{active} WHERE id = #{id}
+    </update>
+
+    <select id="findRuleById" resultType="com.petshop.module.staff.CommissionRule">
+        SELECT * FROM commission_rule WHERE id = #{id}
+    </select>
+
+    <select id="findAllRules" resultType="com.petshop.module.staff.CommissionRule">
+        SELECT r.*,
+               CASE r.scope
+                 WHEN 'SERVICE' THEN (SELECT name FROM service_item WHERE id = r.ref_id)
+                 WHEN 'PRODUCT' THEN (SELECT name FROM product WHERE id = r.ref_id)
+                 ELSE NULL END AS ref_name
+        FROM commission_rule r
+        ORDER BY r.is_active DESC, r.scope, r.id DESC
+    </select>
+
+    <select id="findEffectiveRules" resultType="com.petshop.module.staff.CommissionRule">
+        SELECT * FROM commission_rule
+        WHERE is_active = 1
+          AND effective_from &lt;= #{date}
+          AND (effective_to IS NULL OR effective_to &gt;= #{date})
+        ORDER BY effective_from DESC, id DESC
+    </select>
+
+    <!-- ==================== 提成记录 ==================== -->
+
+    <insert id="insertRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO commission_record(staff_id, bill_id, bill_item_id, biz_type, base_cent,
+                                      ratio_bp, fixed_cent, amount_cent, business_date,
+                                      settle_id, reverse_of_id, remark, created_at)
+        VALUES (#{staffId}, #{billId}, #{billItemId}, #{bizType}, #{baseCent},
+                #{ratioBp}, #{fixedCent}, #{amountCent}, #{businessDate},
+                #{settleId}, #{reverseOfId}, #{remark}, #{createdAt})
+    </insert>
+
+    <select id="findPositiveByBill" resultType="com.petshop.module.staff.CommissionRecord">
+        SELECT * FROM commission_record
+        WHERE bill_id = #{billId} AND amount_cent &gt; 0 AND reverse_of_id IS NULL
+        ORDER BY id
+    </select>
+
+    <select id="listRecords" resultType="com.petshop.module.staff.CommissionRecord">
+        SELECT c.*, s.name AS staff_name, b.bill_no AS bill_no
+        FROM commission_record c
+        JOIN staff s ON s.id = c.staff_id
+        LEFT JOIN bill b ON b.id = c.bill_id
+        <where>
+            <if test="staffId != null">AND c.staff_id = #{staffId}</if>
+            <if test="from != null">AND c.business_date &gt;= #{from}</if>
+            <if test="to != null">AND c.business_date &lt;= #{to}</if>
+        </where>
+        ORDER BY c.id DESC LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countRecords" resultType="long">
+        SELECT COUNT(*) FROM commission_record
+        <where>
+            <if test="staffId != null">AND staff_id = #{staffId}</if>
+            <if test="from != null">AND business_date &gt;= #{from}</if>
+            <if test="to != null">AND business_date &lt;= #{to}</if>
+        </where>
+    </select>
+
+    <select id="groupUnsettled" resultType="map">
+        SELECT staff_id AS staffId, COUNT(*) AS cnt, IFNULL(SUM(amount_cent), 0) AS total
+        FROM commission_record
+        WHERE settle_id IS NULL AND business_date &gt;= #{from} AND business_date &lt;= #{to}
+        GROUP BY staff_id
+        ORDER BY staff_id
+    </select>
+
+    <update id="markRecordsSettled">
+        UPDATE commission_record SET settle_id = #{settleId}
+        WHERE staff_id = #{staffId} AND settle_id IS NULL
+          AND business_date &gt;= #{from} AND business_date &lt;= #{to}
+    </update>
+
+    <!-- ==================== 结算单 ==================== -->
+
+    <insert id="insertSettle" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO commission_settle(settle_no, month, staff_id, total_cent, record_count,
+                                      status, operator, remark, created_at)
+        VALUES (#{settleNo}, #{month}, #{staffId}, #{totalCent}, #{recordCount},
+                #{status}, #{operator}, #{remark}, #{createdAt})
+    </insert>
+
+    <select id="findSettleById" resultType="com.petshop.module.staff.CommissionSettle">
+        SELECT s.*, st.name AS staff_name
+        FROM commission_settle s JOIN staff st ON st.id = s.staff_id
+        WHERE s.id = #{id}
+    </select>
+
+    <select id="findSettleByStaffMonth" resultType="com.petshop.module.staff.CommissionSettle">
+        SELECT * FROM commission_settle WHERE staff_id = #{staffId} AND month = #{month}
+    </select>
+
+    <select id="listSettles" resultType="com.petshop.module.staff.CommissionSettle">
+        SELECT s.*, st.name AS staff_name
+        FROM commission_settle s JOIN staff st ON st.id = s.staff_id
+        <where>
+            <if test="month != null and month != ''">AND s.month = #{month}</if>
+        </where>
+        ORDER BY s.month DESC, s.id DESC
+    </select>
+
+    <update id="confirmSettle">
+        UPDATE commission_settle SET status = 'CONFIRMED', confirmed_at = datetime('now','localtime'),
+               operator = #{operator}
+        WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <!-- ==================== 报表 ==================== -->
+
+    <select id="staffPerformance" resultType="map">
+        SELECT st.id AS staffId, st.name AS staffName, st.role AS staffRole,
+               IFNULL(SUM(CASE WHEN b.id IS NOT NULL AND i.paid_by_card = 0
+                               THEN i.amount_cent ELSE 0 END), 0) AS itemAmount,
+               (SELECT IFNULL(SUM(c.amount_cent), 0) FROM commission_record c
+                 WHERE c.staff_id = st.id
+                   AND c.business_date &gt;= #{from} AND c.business_date &lt;= #{to}) AS commission
+        FROM staff st
+        LEFT JOIN bill_item i ON i.staff_id = st.id
+        LEFT JOIN bill b ON b.id = i.bill_id
+             AND b.status = 'SETTLED' AND b.business_date &gt;= #{from} AND b.business_date &lt;= #{to}
+        WHERE st.is_active = 1
+        GROUP BY st.id
+        ORDER BY itemAmount DESC
+    </select>
+
+</mapper>

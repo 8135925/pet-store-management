@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('新建寄养')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">新建寄养单</h1>
+
+      <form class="card" style="max-width:720px" method="get" action="/boarding/new">
+        <div class="card-body">
+          <div class="field">
+            <label>选择客户（选定后带出宠物）</label>
+            <select class="input" name="customerId" onchange="this.form.submit()">
+              <option value="">— 请选择 —</option>
+              <option th:each="c : ${customers}" th:value="${c.id}" th:text="${c.name} + ' ' + ${c.phone}"
+                      th:selected="${customerId != null and customerId == c.id}"></option>
+            </select>
+          </div>
+        </div>
+      </form>
+
+      <form class="card mt16" style="max-width:720px" method="post" action="/boarding/save"
+            th:if="${pets != null}" onsubmit="return confirmAct('确认创建寄养单？入住时将校验疫苗记录。')">
+        <div class="card-body">
+          <input type="hidden" name="customerId" th:value="${customerId}">
+          <div class="field">
+            <label>宠物（BR-09：入住时将校验疫苗）</label>
+            <select class="input" name="petId" required>
+              <option value="" disabled selected>— 请选择 —</option>
+              <option th:each="p : ${pets}" th:if="${p.isActive}" th:value="${p.id}"
+                      th:text="${p.name} + '（' + ${ui.species(p.species)} + '·' + ${p.breed} + '·' + ${ui.kg(p.weightG)} + '）'"></option>
+            </select>
+          </div>
+          <div class="field">
+            <label>笼位</label>
+            <select class="input" name="roomId" id="roomSel" required
+                    onchange="var p=this.selectedOptions[0].getAttribute('data-price'); if(p) document.getElementById('priceInput').value=p;">
+              <option value="" disabled selected>— 请选择 —</option>
+              <option th:each="r : ${rooms}" th:value="${r.id}"
+                      th:attr="data-price=${r.dailyPriceCent / 100.0}"
+                      th:text="${r.code} + '（' + ${r.roomType} + '）· ' + ${r.dailyPriceCent / 100.0} + ' 元/晚'"></option>
+            </select>
+          </div>
+          <div class="field">
+            <label>入住时间（yyyy-MM-dd HH:mm）</label>
+            <input class="input" type="text" name="startAt" required
+                   placeholder="yyyy-MM-dd HH:mm" th:value="${ui.dt(T(java.time.LocalDateTime).now())}">
+            <div class="hint">凌晨 04:00 前入住归前一营业日</div>
+          </div>
+          <div class="field">
+            <label>预离店日</label>
+            <input class="input" type="date" name="plannedEndOn" required>
+          </div>
+          <div class="field">
+            <label>每晚价（元，按晚计费）</label>
+            <input class="input" type="number" step="0.01" id="priceInput" name="unitPriceYuan" required value="0">
+          </div>
+          <div class="field">
+            <label>押金（元，仅记账）</label>
+            <input class="input" type="number" step="0.01" name="depositYuan" value="0">
+          </div>
+          <div class="field">
+            <label>备注</label>
+            <input class="input" type="text" name="remark" placeholder="自带狗粮/特殊照护要求等">
+          </div>
+          <button class="btn lg" type="submit" style="width:100%">创建寄养单</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

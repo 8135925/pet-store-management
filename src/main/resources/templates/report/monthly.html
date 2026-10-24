@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('月度汇总')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">月度营业汇总</h1>
+
+      <form class="toolbar" method="get" action="/reports/monthly">
+        <input type="month" class="input" name="month" th:value="${month}">
+        <button class="btn ghost" type="submit">查看</button>
+        <span class="muted small">商品毛利自 v1.1 起统计（此前数据成本为 0）</span>
+      </form>
+
+      <div class="card" style="max-width:900px">
+        <div class="card-body flush">
+          <table class="tbl" id="monthly-tbl">
+            <thead>
+              <tr><th>营业日</th><th>售卡收入</th><th>商品收入</th><th>服务收入</th>
+                  <th>商品成本</th><th>商品毛利</th><th>当日实收</th><th>单量</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="r : ${rows}">
+                <td th:text="${r.businessDate}"></td>
+                <td class="num" th:text="${ui.money(r.cardIncome)}"></td>
+                <td class="num" th:text="${ui.money(r.productIncome)}"></td>
+                <td class="num" th:text="${ui.money(r.serviceIncome)}"></td>
+                <td class="num" th:text="${ui.money(r.productCost)}"></td>
+                <td class="num" th:text="${ui.money(r.profit)}"></td>
+                <td class="num"><b th:text="${ui.money(r.dayIncome)}"></b></td>
+                <td class="num" th:text="${r.billCount}"></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(rows)}"><td colspan="8" class="muted">该月无营业数据</td></tr>
+            </tbody>
+            <tfoot th:if="${#lists.size(rows) > 0}">
+              <tr>
+                <td><b>合计</b></td>
+                <td class="num"><b th:text="${ui.money(sumCard)}"></b></td>
+                <td class="num"><b th:text="${ui.money(sumProduct)}"></b></td>
+                <td class="num"><b th:text="${ui.money(sumService)}"></b></td>
+                <td class="num"><b th:text="${ui.money(sumCost)}"></b></td>
+                <td class="num"><b th:text="${ui.money(sumProfit)}"></b></td>
+                <td class="num"><b th:text="${ui.money(sumIncome)}"></b></td>
+                <td class="num"><b th:text="${sumCount}"></b></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

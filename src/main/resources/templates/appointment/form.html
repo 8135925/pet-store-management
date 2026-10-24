@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('新建预约')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">新建预约</h1>
+
+      <form class="card" style="max-width:720px" method="get" action="/appointments/new">
+        <div class="card-body">
+          <div class="field">
+            <label>选择客户（选定后带出宠物）</label>
+            <select class="input" name="customerId" onchange="this.form.submit()">
+              <option value="">— 请选择 —</option>
+              <option th:each="c : ${customers}" th:value="${c.id}" th:text="${c.name} + ' ' + ${c.phone}"
+                      th:selected="${customerId != null and customerId == c.id}"></option>
+            </select>
+          </div>
+        </div>
+      </form>
+
+      <form class="card mt16" style="max-width:720px" method="post" action="/appointments/save" th:if="${pets != null}">
+        <div class="card-body">
+          <input type="hidden" name="customerId" th:value="${customerId}">
+          <div class="field">
+            <label>宠物</label>
+            <select class="input" name="petId" id="petSel" required onchange="checkBoarding(this)">
+              <option value="" disabled selected>— 请选择 —</option>
+              <option th:each="p : ${pets}" th:if="${p.isActive}" th:value="${p.id}"
+                      th:text="${p.name} + '（' + ${p.breed} + '）'"></option>
+            </select>
+            <div class="hint" id="boardWarn" style="color:var(--danger);display:none">
+              ⚠ 该宠物正在寄养中（BR-13），请与前台确认后勾选下方声明
+            </div>
+          </div>
+          <div class="field">
+            <label>服务项目</label>
+            <select class="input" name="serviceId" required>
+              <option value="" disabled selected>— 请选择 —</option>
+              <option th:each="s : ${services}" th:value="${s.id}" th:text="${s.name}"></option>
+            </select>
+          </div>
+          <div class="field">
+            <label>预约日期</label>
+            <input class="input" type="date" name="appointDate" required th:min="${ui.d(T(java.time.LocalDate).now())}">
+          </div>
+          <div class="field">
+            <label>时段（30 分钟粒度，容量见门店参数）</label>
+            <select class="input" name="slot" required>
+              <option value="" disabled selected>— 请选择 —</option>
+              <option th:each="s : ${#numbers.sequence(18, 42)}" th:value="${(s / 2 < 10 ? '0' + s / 2 : s / 2) + (s % 2 == 0 ? ':00' : ':30')}"
+                      th:text="${(s / 2 < 10 ? '0' + s / 2 : s / 2) + (s % 2 == 0 ? ':00' : ':30')}"></option>
+            </select>
+          </div>
+          <div class="field">
+            <label>备注</label>
+            <input class="input" type="text" name="remark" placeholder="特殊要求">
+          </div>
+          <div class="field" id="confirmRow" style="display:none">
+            <label><input type="checkbox" name="confirmBoarding" value="true"> 我已确认：该宠物在店寄养期间仍要到店消费（BR-13）</label>
+          </div>
+          <button class="btn lg" type="submit" style="width:100%">创建预约</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function checkBoarding(sel) {
+  // 寄养互斥提示：由服务端在提交时最终校验，这里仅做前端提示
+  var row = document.getElementById('confirmRow');
+  var warn = document.getElementById('boardWarn');
+  if (sel.selectedOptions.length && sel.selectedOptions[0].getAttribute('data-boarding') === '1') {
+    row.style.display = '';
+    warn.style.display = '';
+  } else {
+    row.style.display = 'none';
+    warn.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>

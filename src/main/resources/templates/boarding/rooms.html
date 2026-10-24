@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('笼位管理')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">笼位管理</h1>
+
+      <div class="card" style="max-width:760px">
+        <div class="card-body">
+          <h2 class="sub" id="frm-title">新增笼位</h2>
+          <form method="post" action="/boarding/rooms/save">
+            <input type="hidden" name="id" id="r-id">
+            <div class="field">
+              <label>编号（R=狗位 C=猫位）</label>
+              <input class="input" type="text" name="code" id="r-code" required placeholder="R01">
+            </div>
+            <div class="field">
+              <label>适用类型</label>
+              <select class="input" name="roomType" id="r-type">
+                <option value="S">S 小型</option><option value="M">M 中型</option>
+                <option value="L">L 大型</option><option value="XL">XL 巨型</option>
+                <option value="CAT">CAT 猫位</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>每晚价（元）</label>
+              <input class="input" type="number" step="0.01" name="dailyPriceYuan" id="r-price" required value="0">
+            </div>
+            <div class="field">
+              <label>位置说明</label>
+              <input class="input" type="text" name="note" id="r-note" placeholder="靠窗/带跑笼">
+            </div>
+            <button class="btn primary" type="submit">保存</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card mt16" style="max-width:760px">
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>编号</th><th>类型</th><th>每晚价</th><th>说明</th><th>在住</th><th>状态</th><th></th></tr></thead>
+            <tbody>
+              <tr th:each="r : ${rooms}" th:classappend="${!r.isActive} ? 'row-red'">
+                <td><b th:text="${r.code}"></b></td>
+                <td th:text="${ui.tier(r.roomType) == '—' ? r.roomType : ui.tier(r.roomType)}"></td>
+                <td th:text="${ui.money(r.dailyPriceCent)}"></td>
+                <td class="small" th:text="${r.note} ?: '—'"></td>
+                <td th:text="${r.inUseCount} + ' 只'"></td>
+                <td><span class="badge" th:classappend="${r.isActive} ? 'ok' : 'danger'"
+                          th:text="${r.isActive} ? '启用' : '停用'"></span></td>
+                <td>
+                  <button class="btn ghost sm" type="button"
+                          th:attr="data-id=${r.id},data-code=${r.code},data-type=${r.roomType},data-price=${r.dailyPriceCent / 100.0},data-note=${r.note}"
+                          onclick="editRoom(this)">编辑</button>
+                  <form method="post" th:action="@{/boarding/rooms/{id}/toggle(id=${r.id})}" style="display:inline">
+                    <input type="hidden" name="active" th:value="${r.isActive} ? 'false' : 'true'">
+                    <button class="btn ghost sm" th:text="${r.isActive} ? '停用' : '启用'"></button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function editRoom(btn) {
+  var d = btn.dataset;
+  document.getElementById('r-id').value = d.id;
+  document.getElementById('r-code').value = d.code;
+  document.getElementById('r-type').value = d.type;
+  document.getElementById('r-price').value = d.price;
+  document.getElementById('r-note').value = d.note || '';
+  document.getElementById('frm-title').textContent = '编辑笼位：' + d.code;
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

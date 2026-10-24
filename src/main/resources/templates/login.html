@@ -15,11 +15,11 @@
     <form method="post" th:action="@{/login}">
       <div class="field">
         <label>用户名</label>
-        <input type="text" name="username" required autofocus th:value="${username}" autocomplete="username">
+        <input type="text" name="username" required autofocus th:value="${username != null ? username : 'admin'}" autocomplete="username">
       </div>
       <div class="field">
         <label>密码</label>
-        <input type="password" name="password" required autocomplete="current-password">
+        <input type="password" name="password" required value="123456" autocomplete="current-password">
       </div>
       <button type="submit" class="btn lg" style="width:100%">登 录</button>
     </form>

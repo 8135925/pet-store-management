@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.boarding.BoardingRoomMapper">
+
+    <resultMap id="roomMap" type="com.petshop.module.boarding.BoardingRoom">
+        <id property="id" column="id"/>
+        <result property="code" column="code"/>
+        <result property="roomType" column="room_type"/>
+        <result property="dailyPriceCent" column="daily_price_cent"/>
+        <result property="note" column="note"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="inUseCount" column="in_use_count"/>
+    </resultMap>
+
+    <sql id="cols">
+        r.id, r.code, r.room_type, r.daily_price_cent, r.note, r.is_active, r.created_at
+    </sql>
+
+    <select id="findById" resultMap="roomMap">
+        SELECT <include refid="cols"/> FROM boarding_room r WHERE r.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="roomMap">
+        SELECT <include refid="cols"/> FROM boarding_room r ORDER BY r.code
+    </select>
+
+    <select id="findActive" resultMap="roomMap">
+        SELECT <include refid="cols"/> FROM boarding_room r WHERE r.is_active = 1 ORDER BY r.code
+    </select>
+
+    <select id="findAllWithUsage" resultMap="roomMap">
+        SELECT <include refid="cols"/>,
+               (SELECT COUNT(*) FROM boarding_order o
+                 WHERE o.room_id = r.id AND o.status = 'CHECKED_IN') AS in_use_count
+        FROM boarding_room r ORDER BY r.code
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO boarding_room(code, room_type, daily_price_cent, note, is_active, created_at)
+        VALUES(#{code}, #{roomType}, #{dailyPriceCent}, #{note}, #{isActive}, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE boarding_room SET code = #{code}, room_type = #{roomType},
+               daily_price_cent = #{dailyPriceCent}, note = #{note}
+        WHERE id = #{id}
+    </update>
+
+    <update id="setActive">
+        UPDATE boarding_room SET is_active = #{active} WHERE id = #{id}
+    </update>
+</mapper>

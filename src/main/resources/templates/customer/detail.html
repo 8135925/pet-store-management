@@ -8,6 +8,9 @@
     <header th:replace="fragments/header :: header"></header>
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
+      <div class="toolbar" style="margin-bottom:8px">
+        <button type="button" class="btn ghost sm" data-back="/customers">← 返回客户档案</button>
+      </div>
 
       <div class="card">
         <div class="card-body flex-between">
@@ -207,7 +210,8 @@
         <div class="field"><label>类型 *</label>
           <select name="eventType">
             <option value="VACCINE">疫苗</option><option value="RABIES">狂犬</option>
-            <option value="DEWORM">驱虫</option><option value="CHECKUP">体检</option>
+            <option value="DEWORM">体内驱虫</option><option value="OUT_DEWORM">体外驱虫</option>
+            <option value="CHECKUP">体检</option>
           </select>
         </div>
         <div class="field"><label>发生日期 *</label><input type="date" name="happenedOn" required th:value="${#dates.format(#dates.createNow(),'yyyy-MM-dd')}"></div>

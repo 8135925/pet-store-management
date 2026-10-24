@@ -1,5 +1,7 @@
 package com.petshop.module.svc;
 
+import com.petshop.common.BizException;
+import com.petshop.common.ErrorCode;
 import com.petshop.common.Money;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,16 +38,19 @@ public class ServiceItemController {
                        @RequestParam(defaultValue = "0") String priceXL,
                        @RequestParam(defaultValue = "0") int sortNo,
                        RedirectAttributes ra) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "服务名称不能为空");
+        }
         ServiceItem s = id == null ? new ServiceItem() : mapper.findById(id);
         if (s == null) {
             s = new ServiceItem();
         }
-        s.setName(name);
+        s.setName(name.trim());
         s.setDurationMin(Math.max(1, durationMin));
-        s.setPriceSCent(Money.toCent(priceS));
-        s.setPriceMCent(Money.toCent(priceM));
-        s.setPriceLCent(Money.toCent(priceL));
-        s.setPriceXLCent(Money.toCent(priceXL));
+        s.setPriceSCent(price(priceS));
+        s.setPriceMCent(price(priceM));
+        s.setPriceLCent(price(priceL));
+        s.setPriceXLCent(price(priceXL));
         s.setSortNo(sortNo);
         s.setIsActive(true);
         if (id == null) {
@@ -55,6 +60,15 @@ public class ServiceItemController {
         }
         ra.addFlashAttribute("okMsg", "服务项目已保存");
         return "redirect:/services";
+    }
+
+    /** 价格必须非负：负数会让结账金额与应收变成负值 */
+    private int price(String yuan) {
+        int cent = Money.toCent(yuan);
+        if (cent < 0) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "服务价格不能为负数");
+        }
+        return cent;
     }
 
     @PostMapping("/{id}/toggle")

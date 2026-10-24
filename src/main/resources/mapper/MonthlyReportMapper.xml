@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.report.MonthlyReportMapper">
+
+    <!-- 每日三列 + 单量 + 商品成本（v1.1）。
+         口径与日汇总一致：售卡=收款当日确认；商品/服务按明细金额、排除卡抵扣行；
+         成本取销售出库流水的成本快照（v1.0 历史数据为 0，毛利自 v1.1 起统计）。 -->
+    <select id="monthly" resultType="map">
+        SELECT d.business_date                                                     AS businessDate,
+               IFNULL(c.card_income, 0)                                            AS cardIncome,
+               IFNULL(p.product_income, 0)                                         AS productIncome,
+               IFNULL(s.service_income, 0)                                         AS serviceIncome,
+               IFNULL(bc.cnt, 0)                                                   AS billCount
+          FROM (SELECT DISTINCT business_date FROM bill
+                 WHERE business_date BETWEEN #{from} AND #{to}) d
+          LEFT JOIN (SELECT business_date, SUM(received_cent) AS card_income
+                       FROM bill WHERE bill_type='CARD' AND status='SETTLED'
+                       GROUP BY business_date) c ON c.business_date = d.business_date
+          LEFT JOIN (SELECT b.business_date, SUM(i.amount_cent) AS product_income
+                       FROM bill_item i JOIN bill b ON b.id = i.bill_id
+                       WHERE b.bill_type='SALE' AND b.status='SETTLED'
+                         AND i.item_type='PRODUCT' AND i.paid_by_card=0
+                       GROUP BY b.business_date) p ON p.business_date = d.business_date
+          LEFT JOIN (SELECT b.business_date, SUM(i.amount_cent) AS service_income
+                       FROM bill_item i JOIN bill b ON b.id = i.bill_id
+                       WHERE b.bill_type='SALE' AND b.status='SETTLED'
+                         AND i.item_type IN ('SERVICE','BOARDING') AND i.paid_by_card=0
+                       GROUP BY b.business_date) s ON s.business_date = d.business_date
+          <!-- 单量按当日已结账销售单统计，不依赖是否含商品明细 -->
+          LEFT JOIN (SELECT business_date, COUNT(*) AS cnt
+                       FROM bill WHERE bill_type='SALE' AND status='SETTLED'
+                       GROUP BY business_date) bc ON bc.business_date = d.business_date
+      ORDER BY d.business_date ASC
+    </select>
+
+    <!-- 商品成本（按日）：直接对销售出库台账聚合。
+         不在 bill_item 上再 JOIN 一次，否则同一单同一商品出现多行明细时会被放大成 N 倍成本。 -->
+    <select id="monthlyCost" resultType="map">
+        SELECT b.business_date AS businessDate,
+               SUM(pl.unit_cost_cent * (-pl.qty_change)) AS productCost
+          FROM product_ledger pl
+          JOIN bill b ON b.id = pl.ref_id
+         WHERE pl.ref_type = 'BILL' AND pl.biz_type = 'SALE'
+           AND b.bill_type='SALE' AND b.status='SETTLED'
+           AND b.business_date BETWEEN #{from} AND #{to}
+         GROUP BY b.business_date
+    </select>
+</mapper>

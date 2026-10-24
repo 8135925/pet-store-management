@@ -10,17 +10,30 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
+    /** 连续失败达到该次数后锁定账号一段时间，防在线暴力猜密码 */
+    private static final int MAX_FAILURES = 5;
+    private static final long LOCK_MILLIS = 10 * 60 * 1000L;
+    private static final int MAX_TRACKED_USERS = 2000;
 
     private final SysUserMapper mapper;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
+    /** username -> 失败计数（内存态，重启后清零；单店场景足够） */
+    private final Map<String, Attempt> attempts = new ConcurrentHashMap<String, Attempt>();
 
     public UserService(SysUserMapper mapper) {
         this.mapper = mapper;
+    }
+
+    private static final class Attempt {
+        private int failures;
+        private long lockedUntil;
     }
 
     public SessionUser login(String username, String password) {
@@ -28,14 +41,38 @@ public class UserService {
                 || password == null || password.isEmpty()) {
             throw new BizException(ErrorCode.LOGIN_FAILED);
         }
-        SysUser u = mapper.findByUsername(username.trim());
+        String key = username.trim();
+        long nowMs = System.currentTimeMillis();
+        Attempt attempt = attempts.get(key);
+        if (attempt != null && attempt.lockedUntil > nowMs) {
+            throw new BizException(ErrorCode.LOGIN_LOCKED);
+        }
+        SysUser u = mapper.findByUsername(key);
         // 统一提示，不区分「用户不存在」与「密码错误」
         if (u == null || !u.getIsActive() || !encoder.matches(password, u.getPasswordHash())) {
-            log.warn("登录失败 username={}", username);
+            recordFailure(key, nowMs);
+            log.warn("登录失败 username={}", key);
             throw new BizException(ErrorCode.LOGIN_FAILED);
         }
+        attempts.remove(key);
         mapper.updateLoginTime(u.getId(), LocalDateTime.now());
         return new SessionUser(u.getId(), u.getUsername(), u.getDisplayName(), u.getRole());
+    }
+
+    private void recordFailure(String key, long nowMs) {
+        if (attempts.size() > MAX_TRACKED_USERS) {
+            attempts.entrySet().removeIf(e -> e.getValue().lockedUntil > 0
+                    && e.getValue().lockedUntil <= nowMs);
+        }
+        Attempt attempt = attempts.computeIfAbsent(key, k -> new Attempt());
+        synchronized (attempt) {
+            attempt.failures++;
+            if (attempt.failures >= MAX_FAILURES) {
+                attempt.lockedUntil = nowMs + LOCK_MILLIS;
+                attempt.failures = 0;
+                log.warn("账号因连续登录失败被临时锁定 username={}", key);
+            }
+        }
     }
 
     public List<SysUser> findAll() {
@@ -59,7 +96,11 @@ public class UserService {
         u.setRole("ADMIN".equals(role) ? "ADMIN" : "STAFF");
         u.setIsActive(true);
         u.setCreatedAt(LocalDateTime.now());
-        mapper.insert(u);
+        try {
+            mapper.insert(u);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new BizException(ErrorCode.USER_EXISTS);
+        }
     }
 
     public void update(Long id, String displayName, String role, boolean active, SessionUser current) {
@@ -84,6 +125,9 @@ public class UserService {
         if (password == null || password.length() < 6) {
             throw new BizException(ErrorCode.PARAM_INVALID, "密码不能少于 6 位");
         }
+        if (mapper.findById(id) == null) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "用户不存在");
+        }
         mapper.updatePassword(id, encoder.encode(password));
     }
 
@@ -100,6 +144,7 @@ public class UserService {
         u.setIsActive(true);
         u.setCreatedAt(LocalDateTime.now());
         mapper.insert(u);
-        log.info("已创建默认管理员账号 admin，初始密码 {}，请登录后尽快修改", rawPassword);
+        // 不在日志里输出明文口令：日志会被收集、转发、留存
+        log.warn("已创建默认管理员账号 '{}'，初始密码取自 app.default-admin-password，请登录后立即修改", username);
     }
 }

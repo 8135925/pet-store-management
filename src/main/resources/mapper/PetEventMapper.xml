@@ -54,7 +54,7 @@
           AND e.contact_status IS NULL
           AND p.is_active = 1
           AND c.id = #{customerId}
-          AND e.next_due_on &lt;= date('now', '+30 day')
+          AND e.next_due_on &lt;= date('now', 'localtime', '+30 day')
         ORDER BY e.next_due_on ASC
     </select>
 

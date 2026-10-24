@@ -15,8 +15,9 @@
     </resultMap>
 
     <sql id="base">
+        <!-- 用 ,id, 包裹做精确匹配，避免 id=3 误匹配到 "13,23" -->
         SELECT t.*, (SELECT GROUP_CONCAT(s.name) FROM service_item s
-                     WHERE t.service_ids LIKE '%' || s.id || '%') AS service_names
+                     WHERE ',' || t.service_ids || ',' LIKE '%,' || s.id || ',%') AS service_names
         FROM card_type t
     </sql>
 

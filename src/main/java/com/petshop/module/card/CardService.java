@@ -94,6 +94,10 @@ public class CardService {
         LocalDateTime now = LocalDateTime.now();
         LocalDate businessDate = BusinessDate.of(now);
 
+        if (!"CASH".equals(payMethod) && !"WECHAT".equals(payMethod) && !"ALIPAY".equals(payMethod)
+                && !"BANK_CARD".equals(payMethod) && !"OTHER".equals(payMethod)) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "收款方式不正确");
+        }
         if (customerMapper.findById(customerId) == null) {
             throw new BizException(ErrorCode.PARAM_INVALID, "客户不存在");
         }
@@ -108,7 +112,6 @@ public class CardService {
 
         // 1. 生成卡
         CustomerCard card = new CustomerCard();
-        card.setCardNo(nextCardNo(LocalDate.now()));
         card.setCustomerId(customerId);
         card.setCardTypeId(type.getId());
         card.setPaidQty(type.getPaidQty());
@@ -121,11 +124,10 @@ public class CardService {
         card.setStatus("ACTIVE");
         card.setRemark(null);
         card.setCreatedAt(now);
-        cardMapper.insert(card);
+        insertCardWithRetry(card);
 
         // 2. 售卡收款单（bill_type=CARD，不写明细）
         Bill b = new Bill();
-        b.setBillNo(nextBillNo("Z", businessDate));
         b.setBillType("CARD");
         b.setCustomerId(customerId);
         b.setPetId(null);
@@ -141,7 +143,7 @@ public class CardService {
         b.setOperator(user.getDisplayName());
         b.setRemark("售卡：" + type.getName() + "，卡号 " + card.getCardNo());
         b.setCreatedAt(now);
-        billMapper.insert(b);
+        insertCardBillWithRetry(b, businessDate);
 
         cardMapper.updateSourceBill(card.getId(), b.getId());
         return card.getId();
@@ -257,6 +259,38 @@ public class CardService {
     }
 
     // ---------------- 单号 ----------------
+
+    /** 卡号并发撞唯一索引时重新取号 */
+    private void insertCardWithRetry(CustomerCard card) {
+        for (int attempt = 0; ; attempt++) {
+            card.setCardNo(nextCardNo(LocalDate.now()));
+            try {
+                cardMapper.insert(card);
+                return;
+            } catch (org.springframework.dao.DuplicateKeyException e) {
+                if (attempt >= 2) {
+                    throw new BizException(ErrorCode.PARAM_INVALID, "卡号生成冲突，请重试");
+                }
+                log.warn("卡号冲突，重新生成：{}", card.getCardNo());
+            }
+        }
+    }
+
+    /** 售卡收款单：单号并发撞唯一索引时重新取号 */
+    private void insertCardBillWithRetry(Bill b, LocalDate businessDate) {
+        for (int attempt = 0; ; attempt++) {
+            b.setBillNo(nextBillNo("Z", businessDate));
+            try {
+                billMapper.insert(b);
+                return;
+            } catch (org.springframework.dao.DuplicateKeyException e) {
+                if (attempt >= 2) {
+                    throw e;
+                }
+                log.warn("售卡单号冲突，重新生成：{}", b.getBillNo());
+            }
+        }
+    }
 
     private String nextCardNo(LocalDate date) {
         String prefix = "C" + date.format(BusinessDate.COMPACT);

@@ -4,23 +4,33 @@
   <nav class="nav">
     <a th:href="@{/}" data-nav="/"><span class="ico">🏠</span>首页看板</a>
     <div class="nav-group-title">前台</div>
-    <a th:href="@{/bills/new?customerId=}" data-nav="/bills"><span class="ico">🧾</span>开单收银</a>
-    <a th:href="@{/bills}" data-nav="/bills/"><span class="ico">📋</span>单据查询</a>
+    <a th:href="@{/bills/new?customerId=}" data-nav="/bills/new"><span class="ico">🧾</span>开单收银</a>
+    <a th:href="@{/bills}" data-nav="/bills"><span class="ico">📋</span>单据查询</a>
     <a th:href="@{/customers}" data-nav="/customers"><span class="ico">👥</span>客户档案</a>
     <a th:href="@{/pets}" data-nav="/pets"><span class="ico">🐶</span>宠物档案</a>
     <div class="nav-group-title">会员卡</div>
     <a th:href="@{/cards/sell}" data-nav="/cards/sell"><span class="ico">💳</span>售卡</a>
-    <a th:href="@{/cards}" data-nav="/cards/"><span class="ico">📊</span>次卡余额表</a>
+    <a th:href="@{/cards}" data-nav="/cards"><span class="ico">📊</span>次卡余额表</a>
     <a th:href="@{/card-types}" data-nav="/card-types"><span class="ico">🗂️</span>卡类型</a>
     <div class="nav-group-title">经营</div>
     <a th:href="@{/reminders}" data-nav="/reminders"><span class="ico">💉</span>到期提醒</a>
     <a th:href="@{/products}" data-nav="/products"><span class="ico">📦</span>商品库存</a>
     <a th:href="@{/services}" data-nav="/services"><span class="ico">✂️</span>服务项目</a>
     <a th:href="@{/reports/daily}" data-nav="/reports/daily"><span class="ico">📈</span>日营业汇总</a>
+    <a th:href="@{/reports/monthly}" data-nav="/reports/monthly"><span class="ico">🗓️</span>月度汇总</a>
+    <div class="nav-group-title">寄养·预约</div>
+    <a th:href="@{/boarding}" data-nav="/boarding"><span class="ico">🏠</span>寄养看板</a>
+    <a th:href="@{/boarding/new}" data-nav="/boarding/new"><span class="ico">➕</span>新建寄养</a>
+    <a th:href="@{/appointments}" data-nav="/appointments"><span class="ico">📅</span>预约看板</a>
+    <a th:href="@{/appointments/new}" data-nav="/appointments/new"><span class="ico">🕐</span>新建预约</a>
+    <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/boarding/rooms}" data-nav="/boarding/rooms"><span class="ico">🚪</span>笼位管理</a>
     <div class="nav-group-title" th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}">系统</div>
     <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/system/users}" data-nav="/system/users"><span class="ico">👤</span>用户管理</a>
     <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/system/config}" data-nav="/system/config"><span class="ico">⚙️</span>门店参数</a>
     <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/system/backup}" data-nav="/system/backup"><span class="ico">💾</span>数据备份</a>
+    <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/system/restore}" data-nav="/system/restore"><span class="ico">♻️</span>备份恢复</a>
+    <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/system/audit}" data-nav="/system/audit"><span class="ico">📜</span>审计日志</a>
+    <a th:if="${session.sessionUser != null and session.sessionUser.isAdmin()}" th:href="@{/system/health}" data-nav="/system/health"><span class="ico">🩺</span>数据体检</a>
   </nav>
 </aside>
 </html>

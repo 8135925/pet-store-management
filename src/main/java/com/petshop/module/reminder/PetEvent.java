@@ -26,10 +26,11 @@ public class PetEvent {
     private String ownerPhone;
     private Long ownerId;
 
-    /** 类型默认提醒间隔（天） */
+    /** 类型默认提醒间隔（天）：疫苗/狂犬 +365、体内驱虫 +90、体外驱虫 +30、体检 +365 */
     public static int defaultInterval(String type) {
         if ("VACCINE".equals(type) || "RABIES".equals(type)) return 365;
         if ("DEWORM".equals(type)) return 90;
+        if ("OUT_DEWORM".equals(type)) return 30;
         return 365;
     }
 

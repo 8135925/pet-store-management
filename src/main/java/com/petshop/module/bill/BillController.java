@@ -37,11 +37,13 @@ public class BillController {
     private final ServiceItemMapper serviceItemMapper;
     private final ProductMapper productMapper;
     private final ObjectMapper objectMapper;
+    private final com.petshop.module.appointment.AppointmentService appointmentService;
 
     public BillController(BillService service, CustomerMapper customerMapper, PetMapper petMapper,
                           CustomerCardMapper cardMapper, CardTypeMapper cardTypeMapper,
                           ServiceItemMapper serviceItemMapper,
-                          ProductMapper productMapper, ObjectMapper objectMapper) {
+                          ProductMapper productMapper, ObjectMapper objectMapper,
+                          com.petshop.module.appointment.AppointmentService appointmentService) {
         this.service = service;
         this.customerMapper = customerMapper;
         this.petMapper = petMapper;
@@ -50,30 +52,36 @@ public class BillController {
         this.serviceItemMapper = serviceItemMapper;
         this.productMapper = productMapper;
         this.objectMapper = objectMapper;
+        this.appointmentService = appointmentService;
     }
 
     @GetMapping("/bills")
     public String list(@RequestParam(required = false) String dateFrom,
                        @RequestParam(required = false) String dateTo,
                        @RequestParam(required = false) Long customerId,
+                       @RequestParam(required = false) Long petId,
                        @RequestParam(required = false) String keyword,
                        @RequestParam(required = false) String status,
                        @RequestParam(defaultValue = "1") int page,
                        Model model) {
         LocalDate from = parseDate(dateFrom);
         LocalDate to = parseDate(dateTo);
-        Map<String, Object> r = service.search(from, to, customerId, null, keyword, status, page, 20);
+        Map<String, Object> r = service.search(from, to, customerId, petId, keyword, status, page, 20);
         model.addAttribute("pr", r.get("pr"));
         model.addAttribute("dateFrom", dateFrom);
         model.addAttribute("dateTo", dateTo);
         model.addAttribute("customerId", customerId);
+        model.addAttribute("petId", petId);
         model.addAttribute("keyword", keyword);
         model.addAttribute("status", status);
+        model.addAttribute("pets", petMapper.listActiveWithOwner()); // v1.1 缺口②：宠物筛选
         return "bill/list";
     }
 
     @GetMapping("/bills/new")
-    public String newBill(@RequestParam(required = false) Long customerId, Model model, HttpSession session) {
+    public String newBill(@RequestParam(required = false) Long customerId,
+                          @RequestParam(required = false) Long appointmentId,
+                          Model model, HttpSession session) {
         if (customerId == null) {
             // 未带客户参数（如侧边栏入口）：让用户先选客户
             model.addAttribute("keyword", "");
@@ -97,6 +105,20 @@ public class BillController {
         model.addAttribute("data", data);
         model.addAttribute("requestId", requestId);
         model.addAttribute("customer", c);
+        // v1.1：预约到店转开单——预填服务明细
+        if (appointmentId != null) {
+            com.petshop.module.appointment.Appointment appt = appointmentService.detail(appointmentId);
+            if (!"ARRIVED".equals(appt.getStatus())) {
+                throw new com.petshop.common.BizException(com.petshop.common.ErrorCode.APPOINTMENT_STATE_INVALID,
+                        "该预约不是「已到店」状态，不能转开单");
+            }
+            if (!customerId.equals(appt.getCustomerId())) {
+                throw new com.petshop.common.BizException(com.petshop.common.ErrorCode.PARAM_INVALID,
+                        "预约客户与开单客户不一致");
+            }
+            model.addAttribute("appointmentId", appointmentId);
+            model.addAttribute("appointment", appt);
+        }
         return "bill/new";
     }
 
@@ -139,6 +161,7 @@ public class BillController {
             Map<String, Object> m = new HashMap<>();
             m.put("id", p.getId());
             m.put("name", p.getName());
+            m.put("barcode", p.getBarcode());
             m.put("salePriceCent", p.getSalePriceCent());
             m.put("stockQty", p.getStockQty());
             prods.add(m);
@@ -176,6 +199,7 @@ public class BillController {
                          @RequestParam String payMethod,
                          @RequestParam(required = false) String remark,
                          @RequestParam(required = false) String requestId,
+                         @RequestParam(required = false) Long appointmentId,
                          HttpSession session, RedirectAttributes ra) {
         SessionUser user = (SessionUser) session.getAttribute("sessionUser");
         // 幂等键优先取表单隐藏域（双击重复提交时两次请求携带同一 token），回退到会话 token
@@ -197,9 +221,10 @@ public class BillController {
         form.setPayMethod(payMethod);
         form.setRemark(remark);
         form.setRequestId(token);
+        form.setAppointmentId(appointmentId);
 
         Long billId = service.settle(form, user);
-        ra.addFlashAttribute("okMsg", "结账成功");
+        ra.addFlashAttribute("okMsg", appointmentId != null ? "结账成功，预约已完成" : "结账成功");
         return "redirect:/bills/" + billId;
     }
 
@@ -223,6 +248,11 @@ public class BillController {
         if (s == null || s.trim().isEmpty()) {
             return null;
         }
-        return LocalDate.parse(s.trim());
+        try {
+            return LocalDate.parse(s.trim());
+        } catch (Exception e) {
+            throw new com.petshop.common.BizException(
+                    com.petshop.common.ErrorCode.PARAM_INVALID, "日期格式不正确：" + s);
+        }
     }
 }

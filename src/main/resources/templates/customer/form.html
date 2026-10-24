@@ -8,6 +8,9 @@
     <header th:replace="fragments/header :: header"></header>
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
+      <div class="toolbar" style="margin-bottom:8px">
+        <button type="button" class="btn ghost sm" data-back="/customers">← 返回客户档案</button>
+      </div>
       <h1 class="page-title" th:text="${customer.id == null} ? '客户建档' : '编辑客户'"></h1>
 
       <div class="card">

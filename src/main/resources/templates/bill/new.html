@@ -17,6 +17,7 @@
         <input type="hidden" name="customerId" th:value="${customer.id}">
         <input type="hidden" name="requestId" th:value="${requestId}">
         <input type="hidden" name="itemsJson" id="itemsJson" value="[]">
+        <input type="hidden" name="appointmentId" id="appointmentId" th:value="${appointmentId}">
 
         <div class="pos-wrap">
           <div class="pos-left">
@@ -42,7 +43,10 @@
             </div>
 
             <div class="card">
-              <div class="card-head"><span>📦 商品</span></div>
+              <div class="card-head"><span>📦 商品</span>
+                <input type="text" id="barcodeInput" placeholder="扫码枪对准此处 / 输入条码回车"
+                       style="width:220px;margin-left:auto" autocomplete="off">
+              </div>
               <div class="card-body">
                 <div class="pick-grid">
                   <button type="button" class="pick" th:each="p : ${data.products}"
@@ -99,10 +103,31 @@
   </div>
 </div>
 
-<script type="application/json" id="dataTag" th:text="${dataJson}">{}</script>
-<script src="#" th:src="@{/js/app.js}"></script>
+<!-- 放在 data-* 属性里：属性值经 HTML 转义后由浏览器还原，避免 <script> raw text 中 &quot; 不解码导致 JSON.parse 失败 -->
+<div id="dataTag" th:attr="data-json=${dataJson}" style="display:none"></div>
+<input type="hidden" id="apptServiceId" th:value="${appointment != null} ? ${appointment.serviceId} : ''">
+<input type="hidden" id="apptPetId" th:value="${appointment != null} ? ${appointment.petId} : ''">
 <script>
-var DATA = JSON.parse(document.getElementById('dataTag').textContent);
+var DATA = JSON.parse(document.getElementById('dataTag').getAttribute('data-json') || '{}');
+
+/* v1.1：扫码开单（FR-M10-01） */
+document.addEventListener('DOMContentLoaded', function () {
+  var bar = document.getElementById('barcodeInput');
+  if (!bar) return;
+  bar.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var code = bar.value.trim();
+    if (!code) return;
+    var hit = null;
+    (DATA.products || []).forEach(function (p) {
+      if (p.barcode && p.barcode === code) hit = p;
+    });
+    if (hit) { addProduct(hit.id); bar.value = ''; }
+    else { document.getElementById('formErr').textContent = '条码未找到商品：' + code + '（可手动点选加入）'; }
+    bar.focus();
+  });
+});
 </script>
 <script>
 /* 开单页逻辑：纯前端计算，提交时服务端重算 */
@@ -316,6 +341,20 @@ function submitForm(f) {
 
 renderPets();
 render();
+
+/* v1.1 F9：预约到店转开单——预填宠物与服务项 */
+(function () {
+  var sid = parseInt(document.getElementById('apptServiceId').value, 10);
+  var pid = parseInt(document.getElementById('apptPetId').value, 10);
+  if (sid && pid) {
+    selectPet(pid);
+    addService(sid);
+    if (document.getElementById('formErr')) {
+      document.getElementById('formErr').textContent = '已带入预约服务，请核对明细后结账';
+      document.getElementById('formErr').style.color = 'var(--primary)';
+    }
+  }
+})();
 </script>
 </body>
 </html>

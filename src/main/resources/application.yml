@@ -28,6 +28,11 @@ spring:
     cache: true
     encoding: UTF-8
     mode: HTML
+  servlet:
+    multipart:
+      # 恢复备份要传整库文件，默认 1MB 会直接拒收
+      max-file-size: 100MB
+      max-request-size: 110MB
   mvc:
     hiddenmethod:
       filter:
@@ -50,7 +55,8 @@ app:
   backup-dir: ./data/backup
   backup-keep: 7
   business-day-cutoff-hour: 4
-  default-admin-password: "123456"
+  # 生产部署请通过环境变量 APP_DEFAULT_ADMIN_PASSWORD 覆盖，不要沿用默认值
+  default-admin-password: "${APP_DEFAULT_ADMIN_PASSWORD:123456}"
 
 logging:
   config: classpath:logback-spring.xml

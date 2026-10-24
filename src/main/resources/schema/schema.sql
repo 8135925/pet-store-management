@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS product_ledger (
   qty_change  INTEGER NOT NULL,                  -- 变动数量：入库为正、出库为负，不允许 0
   before_qty  INTEGER NOT NULL,                  -- 变动前库存快照；与 after_qty 一起构成完整证据链
   after_qty   INTEGER NOT NULL,                  -- 变动后库存快照；必须满足 after_qty = before_qty + qty_change
+  unit_cost_cent INTEGER NOT NULL DEFAULT 0,     -- v1.1 增列：出库时成本单价快照（分），毛利报表用；v1.0 历史数据为 0
   ref_type    TEXT,                              -- 关联单据类型：BILL 销售单 / MANUAL 手工调整
   ref_id      INTEGER,                           -- 关联单据 id；ref_type=BILL 时指向 bill.id
   operator    TEXT,                              -- 操作人（员工显示名）
@@ -313,3 +314,376 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_sys_user ON sys_user(username); -- 账号�
 --     GROUP BY c.id
 --    HAVING c.used_paid <> IFNULL(log_paid,0) OR c.used_gift <> IFNULL(log_gift,0);
 -- ============================================================================
+
+
+-- ============================================================================
+-- v1.1 新增表（2026-10）：寄养 / 预约。全部幂等，v1.0 库直接升级。
+-- ============================================================================
+
+-- ============================================================================
+-- 15. boarding_room 笼位
+--     寄养的『库存』：编号唯一、类型对齐体型档（S/M/L/XL/CAT）。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS boarding_room (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键，自增
+  code             TEXT    NOT NULL,                -- 笼位编号 R01/R02/C01…（C 开头为猫位）
+  room_type        TEXT    NOT NULL,                -- 适用类型 S/M/L/XL/CAT
+  daily_price_cent INTEGER NOT NULL DEFAULT 0,      -- 每晚挂牌价，单位分；寄养单可覆盖
+  note             TEXT,                            -- 位置说明（靠窗/带跑笼）
+  is_active        INTEGER NOT NULL DEFAULT 1,      -- 维修中可停用；在住的不受影响
+  created_at       TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_room_code ON boarding_room(code);
+
+-- ============================================================================
+-- 16. boarding_order 寄养单
+--     状态机 BOOKED → CHECKED_IN → CHECKED_OUT / CANCELLED；按晚计费 BR-11。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS boarding_order (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT, -- 主键，自增
+  order_no         TEXT    NOT NULL,                -- 单号 B + yyyyMMdd + 4位序号
+  customer_id      INTEGER NOT NULL REFERENCES customer(id), -- 主人
+  pet_id           INTEGER NOT NULL REFERENCES pet(id),      -- 被寄养的宠物
+  room_id          INTEGER NOT NULL REFERENCES boarding_room(id), -- 笼位
+  start_at         TEXT    NOT NULL,                -- 入住时间 'yyyy-MM-dd HH:mm'
+  planned_end_on   TEXT    NOT NULL,                -- 预计离店日 'yyyy-MM-dd'
+  end_at           TEXT,                            -- 实际退住时间；未退住 NULL
+  days             INTEGER,                         -- 计费晚数（结算时落库，≥1）
+  unit_price_cent  INTEGER NOT NULL,                -- 实际每晚价（下单时快照）
+  deposit_cent     INTEGER NOT NULL DEFAULT 0,      -- 押金，仅记账展示，不进营收
+  status           TEXT    NOT NULL DEFAULT 'BOOKED', -- BOOKED/CHECKED_IN/CHECKED_OUT/CANCELLED
+  bill_id          INTEGER,                         -- 退住结算生成的 bill.id
+  remark           TEXT,
+  created_at       TEXT    NOT NULL,
+  created_by       TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_boarding_no ON boarding_order(order_no);
+CREATE INDEX IF NOT EXISTS idx_bo_room_time ON boarding_order(room_id, start_at); -- 笼位冲突检测
+CREATE INDEX IF NOT EXISTS idx_bo_status    ON boarding_order(status);            -- 在店清单
+CREATE INDEX IF NOT EXISTS idx_bo_customer  ON boarding_order(customer_id);
+
+-- ============================================================================
+-- 17. boarding_log 寄养每日记录
+--     一天一条（唯一索引兜底），只增不改（BR-14）。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS boarding_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id   INTEGER NOT NULL REFERENCES boarding_order(id),
+  log_date   TEXT    NOT NULL,              -- 记录的是哪一天（允许补录）
+  fed_count  INTEGER NOT NULL DEFAULT 0,    -- 喂食次数
+  walked     INTEGER NOT NULL DEFAULT 0,    -- 是否遛弯 0/1
+  note       TEXT,                          -- 精神状态/大便/异常
+  operator   TEXT,
+  created_at TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_blog_order_date ON boarding_log(order_id, log_date);
+
+-- ============================================================================
+-- 18. appointment 预约
+--     纯日程记录：不占库存不收钱，转开单（DONE）才走收款（BR-12）。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS appointment (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id  INTEGER NOT NULL REFERENCES customer(id),
+  pet_id       INTEGER NOT NULL REFERENCES pet(id),
+  service_id   INTEGER NOT NULL REFERENCES service_item(id),
+  appoint_date TEXT    NOT NULL,             -- 预约日 'yyyy-MM-dd'
+  slot         TEXT    NOT NULL,             -- 时段 'HH:mm'，30 分钟粒度
+  size_tier    TEXT,                         -- 建单时体型档快照（估价用）
+  status       TEXT    NOT NULL DEFAULT 'BOOKED', -- BOOKED/ARRIVED/DONE/CANCELLED/NO_SHOW
+  bill_id      INTEGER,                      -- 转开单后的 bill.id
+  remark       TEXT,
+  created_at   TEXT    NOT NULL,
+  created_by   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_appt_date ON appointment(appoint_date, slot);
+CREATE INDEX IF NOT EXISTS idx_appt_customer ON appointment(customer_id);
+
+INSERT OR IGNORE INTO store_config(k, v) VALUES ('slot_capacity', '3');
+
+
+-- ============================================================================
+-- v1.2 新增表（2026-10）：采购 / 批次 / 盘点 / 提成 / 客户经营 / 审计
+-- 全部 IF NOT EXISTS，v1.0/v1.1 库启动即升级；存量表增列由 DataInitializer 完成。
+-- ============================================================================
+
+-- ============================================================================
+-- 19. supplier 供应商
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS supplier (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  name          TEXT    NOT NULL,
+  contact       TEXT,
+  phone         TEXT,
+  address       TEXT,
+  main_category TEXT,
+  remark        TEXT,
+  is_active     INTEGER NOT NULL DEFAULT 1,
+  created_at    TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_supplier_name ON supplier(name);
+
+-- ============================================================================
+-- 20. purchase_order 采购入库单
+--     DRAFT 草稿 → RECEIVED 已入库（终态）；草稿可 CANCELLED。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS purchase_order (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_no        TEXT    NOT NULL,
+  supplier_id     INTEGER NOT NULL REFERENCES supplier(id),
+  status          TEXT    NOT NULL DEFAULT 'DRAFT',
+  total_cost_cent INTEGER NOT NULL DEFAULT 0,
+  item_count      INTEGER NOT NULL DEFAULT 0,
+  received_at     TEXT,
+  operator        TEXT,
+  remark          TEXT,
+  created_at      TEXT    NOT NULL,
+  created_by      TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_purchase_no ON purchase_order(order_no);
+CREATE INDEX IF NOT EXISTS idx_purchase_supplier ON purchase_order(supplier_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_purchase_status ON purchase_order(status, created_at);
+
+-- ============================================================================
+-- 21. purchase_item 采购明细
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS purchase_item (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  purchase_id    INTEGER NOT NULL REFERENCES purchase_order(id),
+  product_id     INTEGER NOT NULL REFERENCES product(id),
+  qty            INTEGER NOT NULL,
+  unit_cost_cent INTEGER NOT NULL,
+  amount_cent    INTEGER NOT NULL,
+  batch_no       TEXT,
+  expire_on      TEXT,
+  remark         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_purchase_item_pid ON purchase_item(purchase_id);
+
+-- ============================================================================
+-- 22. product_batch 商品批次
+--     ★ qty_left 是余额表（可 UPDATE），但每次变动必须同时写 product_ledger；
+--       所有批次 qty_left 之和必须等于 product.stock_qty（数据体检项 2）。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS product_batch (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  product_id       INTEGER NOT NULL REFERENCES product(id),
+  purchase_item_id INTEGER,
+  batch_no         TEXT,
+  expire_on        TEXT,
+  qty_in           INTEGER NOT NULL,
+  qty_left         INTEGER NOT NULL,
+  unit_cost_cent   INTEGER NOT NULL DEFAULT 0,
+  source           TEXT    NOT NULL DEFAULT 'PURCHASE',
+                   -- PURCHASE 采购 / OPENING 期初 / STOCK_TAKE 盘盈 / RETURN 反结账回补
+  status           TEXT    NOT NULL DEFAULT 'NORMAL',
+                   -- NORMAL / EXHAUSTED / EXPIRED / VOID
+  received_at      TEXT    NOT NULL,
+  created_at       TEXT    NOT NULL,
+  CHECK (qty_left >= 0 AND (qty_left <= qty_in OR source = 'STOCK_TAKE'))
+);
+CREATE INDEX IF NOT EXISTS idx_batch_fefo ON product_batch(product_id, status, expire_on, received_at);
+CREATE INDEX IF NOT EXISTS idx_batch_expire ON product_batch(expire_on, status);
+
+-- ============================================================================
+-- 23. stock_take 盘点单
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS stock_take (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  take_no          TEXT    NOT NULL,
+  scope            TEXT    NOT NULL DEFAULT 'ALL',
+  scope_value      TEXT,
+  status           TEXT    NOT NULL DEFAULT 'COUNTING',
+  item_count       INTEGER NOT NULL DEFAULT 0,
+  diff_count       INTEGER NOT NULL DEFAULT 0,
+  diff_amount_cent INTEGER NOT NULL DEFAULT 0,
+  started_at       TEXT    NOT NULL,
+  confirmed_at     TEXT,
+  operator         TEXT,
+  remark           TEXT,
+  created_at       TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_take_no ON stock_take(take_no);
+CREATE INDEX IF NOT EXISTS idx_take_status ON stock_take(status, started_at);
+
+-- ============================================================================
+-- 24. stock_take_item 盘点明细
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS stock_take_item (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  take_id     INTEGER NOT NULL REFERENCES stock_take(id),
+  product_id  INTEGER NOT NULL REFERENCES product(id),
+  system_qty  INTEGER NOT NULL,
+  counted_qty INTEGER,
+  diff_qty    INTEGER,
+  cost_cent   INTEGER NOT NULL DEFAULT 0,
+  reason      TEXT,
+  remark      TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_take_item ON stock_take_item(take_id, product_id);
+
+-- ============================================================================
+-- 25. staff 员工（与登录账号解耦：美容师可以没有系统账号）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS staff (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT    NOT NULL,
+  role       TEXT    NOT NULL DEFAULT 'GROOMER', -- GROOMER/ASSISTANT/CASHIER/MANAGER
+  phone      TEXT,
+  hire_on    TEXT,
+  leave_on   TEXT,
+  is_active  INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_staff_active ON staff(is_active, role);
+
+-- ============================================================================
+-- 26. commission_rule 提成规则（比例用万分比整数，全库无浮点）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS commission_rule (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  scope          TEXT    NOT NULL,             -- SERVICE/PRODUCT/BOARDING/CARD/ALL
+  ref_id         INTEGER,
+  staff_role     TEXT,
+  ratio_bp       INTEGER NOT NULL DEFAULT 0,   -- 1500 = 15%
+  fixed_cent     INTEGER NOT NULL DEFAULT 0,
+  effective_from TEXT    NOT NULL,
+  effective_to   TEXT,
+  is_active      INTEGER NOT NULL DEFAULT 1,
+  remark         TEXT,
+  created_at     TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rule_scope ON commission_rule(scope, ref_id, is_active);
+
+-- ============================================================================
+-- 27. commission_record 提成记录（只增；反结账写负数冲销）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS commission_record (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  staff_id      INTEGER NOT NULL REFERENCES staff(id),
+  bill_id       INTEGER NOT NULL,
+  bill_item_id  INTEGER,
+  biz_type      TEXT    NOT NULL,
+  base_cent     INTEGER NOT NULL,
+  ratio_bp      INTEGER NOT NULL DEFAULT 0,
+  fixed_cent    INTEGER NOT NULL DEFAULT 0,
+  amount_cent   INTEGER NOT NULL,
+  business_date TEXT    NOT NULL,
+  settle_id     INTEGER,
+  reverse_of_id INTEGER,
+  remark        TEXT,
+  created_at    TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_comm_staff_date ON commission_record(staff_id, business_date);
+CREATE INDEX IF NOT EXISTS idx_comm_settle ON commission_record(settle_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_comm_item
+  ON commission_record(bill_item_id, staff_id, biz_type, IFNULL(reverse_of_id, 0))
+  WHERE bill_item_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uk_comm_bill_card
+  ON commission_record(bill_id, staff_id, biz_type, IFNULL(reverse_of_id, 0))
+  WHERE biz_type = 'CARD';
+
+-- ============================================================================
+-- 28. commission_settle 提成结算单
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS commission_settle (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  settle_no    TEXT    NOT NULL,
+  month        TEXT    NOT NULL,
+  staff_id     INTEGER NOT NULL REFERENCES staff(id),
+  total_cent   INTEGER NOT NULL DEFAULT 0,
+  record_count INTEGER NOT NULL DEFAULT 0,
+  status       TEXT    NOT NULL DEFAULT 'DRAFT',
+  confirmed_at TEXT,
+  operator     TEXT,
+  remark       TEXT,
+  created_at   TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_settle_staff_month ON commission_settle(staff_id, month);
+
+-- ============================================================================
+-- 29. pet_tag 宠物标签（凶猛/怕吹风/老年…）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS pet_tag (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  pet_id     INTEGER NOT NULL REFERENCES pet(id),
+  tag_code   TEXT    NOT NULL,
+  note       TEXT,
+  created_at TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_pet_tag ON pet_tag(pet_id, tag_code);
+
+-- ============================================================================
+-- 30. customer_tag 客户标签
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS customer_tag (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL REFERENCES customer(id),
+  tag_code    TEXT    NOT NULL,
+  note        TEXT,
+  created_at  TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_customer_tag ON customer_tag(customer_id, tag_code);
+
+-- ============================================================================
+-- 31. follow_up_task 回访任务（唯一索引防重复生成，表达式索引兜住 pet_id 为空）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS follow_up_task (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL REFERENCES customer(id),
+  pet_id      INTEGER,
+  type        TEXT    NOT NULL,
+  due_on      TEXT    NOT NULL,
+  status      TEXT    NOT NULL DEFAULT 'PENDING',
+  source_type TEXT,
+  source_id   INTEGER,
+  note        TEXT,
+  result      TEXT,
+  operator    TEXT,
+  done_at     TEXT,
+  created_at  TEXT    NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_follow_up
+  ON follow_up_task(customer_id, IFNULL(pet_id, 0), type, due_on);
+CREATE INDEX IF NOT EXISTS idx_follow_up_due ON follow_up_task(status, due_on);
+
+-- ============================================================================
+-- 32. contact_log 触达记录
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS contact_log (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id    INTEGER NOT NULL REFERENCES customer(id),
+  pet_id         INTEGER,
+  task_id        INTEGER,
+  channel        TEXT    NOT NULL,
+  result         TEXT    NOT NULL,
+  content        TEXT,
+  next_follow_on TEXT,
+  operator       TEXT,
+  created_at     TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_contact_customer ON contact_log(customer_id, created_at);
+
+-- ============================================================================
+-- 33. audit_log 操作审计
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  action      TEXT    NOT NULL,
+  target_type TEXT,
+  target_id   INTEGER,
+  before_json TEXT,
+  after_json  TEXT,
+  operator    TEXT,
+  operator_id INTEGER,
+  ip          TEXT,
+  created_at  TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_target ON audit_log(target_type, target_id);
+
+INSERT OR IGNORE INTO store_config(k, v) VALUES ('inventory_batch_enabled', '1');
+INSERT OR IGNORE INTO store_config(k, v) VALUES ('recall_days', '90');
+INSERT OR IGNORE INTO store_config(k, v) VALUES ('follow_up_days', '3');
+INSERT OR IGNORE INTO store_config(k, v) VALUES ('receipt_width', '58');
+INSERT OR IGNORE INTO store_config(k, v) VALUES ('replenish_days', '7');

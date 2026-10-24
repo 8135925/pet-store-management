@@ -28,6 +28,7 @@ public class BackupService {
 
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
     private static final Pattern FILE_PAT = Pattern.compile("pet-\\d{8}-\\d{4,6}\\.db");
+    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private final AppProps props;
     private final JdbcTemplate jdbc;
@@ -72,14 +73,27 @@ public class BackupService {
     }
 
     private String doBackup() {
-        LocalDateTime now = LocalDateTime.now();
-        // 文件名精确到秒，避免同一分钟内多次备份互相覆盖（VACUUM INTO 不允许覆盖已存在文件）
-        String name = "pet-" + now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".db";
+        // 文件名精确到秒，避免同一分钟内多次备份互相覆盖（VACUUM INTO 不允许覆盖已存在文件）；
+        // 同一秒内连续两次备份（如恢复前的预备份）会撞名，等到下一秒再生成
+        String name = null;
         Path dir = Paths.get(props.getBackupDir());
         try {
             Files.createDirectories(dir);
-            Path target = dir.resolve(name);
-            String path = target.toAbsolutePath().toString().replace("\\", "/");
+            Path target;
+            int waited = 0;
+            do {
+                name = "pet-" + LocalDateTime.now().format(TS_FMT) + ".db";
+                target = dir.resolve(name);
+                if (Files.exists(target)) {
+                    Thread.sleep(50);
+                    waited++;
+                }
+            } while (Files.exists(target) && waited < 40);
+            if (Files.exists(target)) {
+                throw new IllegalStateException("同一秒内备份过于频繁，无法生成唯一文件名");
+            }
+            // VACUUM INTO 的目标是字符串字面量，单引号必须转义，否则配置路径含 ' 会破坏语句
+            String path = target.toAbsolutePath().toString().replace("\\", "/").replace("'", "''");
             jdbc.execute("VACUUM INTO '" + path + "'");
             cleanOldBackups(dir);
             log.info("备份完成：{}", path);

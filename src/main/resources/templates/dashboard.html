@@ -36,6 +36,61 @@
           <div class="label">低库存</div>
           <div class="value" th:text="${d['lowStockCount']}">0</div>
         </a>
+        <a class="stat" th:href="@{/boarding}">
+          <div class="label">在店寄养</div>
+          <div class="value" th:text="${inHouseCount}">0</div>
+        </a>
+        <a class="stat" th:href="@{/appointments}">
+          <div class="label">今日预约</div>
+          <div class="value" th:text="${#lists.size(todayAppointments)}">0</div>
+        </a>
+      </div>
+
+      <div class="grid-2 mt16">
+        <div class="card">
+          <div class="card-head">
+            <span>🏠 在店寄养（<span th:text="${inHouseCount}"></span>）</span>
+            <a class="btn ghost sm" th:href="@{/boarding}">寄养看板</a>
+          </div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>笼位</th><th>宠物</th><th>主人</th><th>预离店</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr th:each="o : ${inHouse}" th:classappend="${o.overdue} ? 'row-red'">
+                  <td><span class="badge primary" th:text="${o.roomCode}"></span></td>
+                  <td th:text="${o.petName}"></td>
+                  <td th:text="${o.ownerName}"></td>
+                  <td th:text="${o.plannedEndOn}"></td>
+                  <td><span class="badge danger" th:if="${o.overdue}" th:text="'超期'"></span>
+                      <span th:unless="${o.overdue}" th:text="${o.nightsSoFar()} + ' 晚'"></span></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(inHouse)}"><td colspan="5" class="muted">无在住宠物</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span>📅 今日预约</span>
+            <a class="btn ghost sm" th:href="@{/appointments}">预约看板</a>
+          </div>
+          <div class="card-body flush">
+            <table class="tbl">
+              <thead><tr><th>时段</th><th>宠物</th><th>项目</th><th>主人</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr th:each="a : ${todayAppointments}">
+                  <td><b th:text="${a.slot}"></b></td>
+                  <td th:text="${a.petName}"></td>
+                  <td th:text="${a.serviceName}"></td>
+                  <td th:text="${a.ownerName}"></td>
+                  <td th:text="${ui.apptStatus(a.status)}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(todayAppointments)}"><td colspan="5" class="muted">今日暂无预约</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="grid-2 mt16">

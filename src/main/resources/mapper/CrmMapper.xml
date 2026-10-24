@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.crm.CrmMapper">
+
+    <!-- ==================== 标签 ==================== -->
+
+    <insert id="insertPetTag" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pet_tag(pet_id, tag_code, note, created_at)
+        VALUES (#{ownerId}, #{tagCode}, #{note}, #{createdAt})
+    </insert>
+
+    <delete id="deletePetTag">
+        DELETE FROM pet_tag WHERE pet_id = #{petId} AND tag_code = #{tagCode}
+    </delete>
+
+    <select id="findPetTags" resultType="com.petshop.module.crm.Tag">
+        SELECT id, pet_id AS owner_id, tag_code, note, created_at
+        FROM pet_tag WHERE pet_id = #{petId} ORDER BY id
+    </select>
+
+    <insert id="insertCustomerTag" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_tag(customer_id, tag_code, note, created_at)
+        VALUES (#{ownerId}, #{tagCode}, #{note}, #{createdAt})
+    </insert>
+
+    <delete id="deleteCustomerTag">
+        DELETE FROM customer_tag WHERE customer_id = #{customerId} AND tag_code = #{tagCode}
+    </delete>
+
+    <select id="findCustomerTags" resultType="com.petshop.module.crm.Tag">
+        SELECT id, customer_id AS owner_id, tag_code, note, created_at
+        FROM customer_tag WHERE customer_id = #{customerId} ORDER BY id
+    </select>
+
+    <!-- ==================== 待办 ==================== -->
+
+    <insert id="insertTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO follow_up_task(customer_id, pet_id, type, due_on, status, source_type,
+                                   source_id, note, created_at)
+        VALUES (#{customerId}, #{petId}, #{type}, #{dueOn}, #{status}, #{sourceType},
+                #{sourceId}, #{note}, #{createdAt})
+    </insert>
+
+    <select id="existsTask" resultType="int">
+        SELECT COUNT(*) FROM follow_up_task
+        WHERE customer_id = #{customerId}
+          AND IFNULL(pet_id, 0) = IFNULL(#{petId}, 0)
+          AND type = #{type} AND due_on = #{dueOn}
+    </select>
+
+    <select id="findTaskById" resultType="com.petshop.module.crm.FollowUpTask">
+        SELECT t.*, c.name AS customer_name, c.phone AS customer_phone, p.name AS pet_name
+        FROM follow_up_task t
+        JOIN customer c ON c.id = t.customer_id
+        LEFT JOIN pet p ON p.id = t.pet_id
+        WHERE t.id = #{id}
+    </select>
+
+    <select id="findPending" resultType="com.petshop.module.crm.FollowUpTask">
+        SELECT t.*, c.name AS customer_name, c.phone AS customer_phone, p.name AS pet_name
+        FROM follow_up_task t
+        JOIN customer c ON c.id = t.customer_id
+        LEFT JOIN pet p ON p.id = t.pet_id
+        WHERE t.status = 'PENDING' AND t.due_on &lt;= #{date}
+        ORDER BY
+          CASE t.type
+            WHEN 'COMPLAINT' THEN 1
+            WHEN 'CUSTOMER_BIRTHDAY' THEN 2
+            WHEN 'BIRTHDAY' THEN 3
+            WHEN 'SERVICE_FOLLOW_UP' THEN 4
+            WHEN 'RECALL' THEN 5
+            ELSE 6 END,
+          t.due_on, t.id
+    </select>
+
+    <select id="countPending" resultType="long">
+        SELECT COUNT(*) FROM follow_up_task WHERE status = 'PENDING' AND due_on &lt;= #{date}
+    </select>
+
+    <update id="finishTask">
+        UPDATE follow_up_task SET status = #{status}, result = #{result},
+               operator = #{operator}, done_at = datetime('now','localtime')
+        WHERE id = #{id} AND status = 'PENDING'
+    </update>
+
+    <update id="postponeTask">
+        UPDATE follow_up_task SET due_on = #{dueOn}
+        WHERE id = #{id} AND status = 'PENDING'
+    </update>
+
+    <update id="expireOld">
+        UPDATE follow_up_task SET status = 'EXPIRED'
+        WHERE status = 'PENDING' AND due_on &lt; #{before}
+    </update>
+
+    <select id="servicePetsForFollowUp" resultType="map">
+        SELECT DISTINCT b.customer_id AS customerId, b.pet_id AS petId
+        FROM bill b JOIN bill_item i ON i.bill_id = b.id
+        WHERE b.business_date = #{date} AND b.status = 'SETTLED'
+          AND b.pet_id IS NOT NULL
+          AND i.item_type IN ('SERVICE', 'BOARDING')
+    </select>
+
+    <select id="petsWithBirthday" resultType="map">
+        SELECT p.id AS petId, p.owner_id AS customerId, p.name AS petName, c.name AS customerName
+        FROM pet p JOIN customer c ON c.id = p.owner_id
+        WHERE p.is_active = 1 AND c.is_active = 1
+          AND p.birthday IS NOT NULL AND substr(p.birthday, 6, 5) = #{mmdd}
+    </select>
+
+    <select id="customersWithBirthday" resultType="map">
+        SELECT id AS customerId, name AS customerName
+        FROM customer
+        WHERE is_active = 1 AND birthday IS NOT NULL AND substr(birthday, 6, 5) = #{mmdd}
+    </select>
+
+    <select id="recallCustomers" resultType="map">
+        SELECT c.id AS customerId, c.name AS customerName, c.phone AS phone,
+               IFNULL(SUM(b.received_cent), 0) AS totalSpent, MAX(b.business_date) AS lastVisit
+        FROM customer c
+        LEFT JOIN bill b ON b.customer_id = c.id AND b.status = 'SETTLED'
+        WHERE c.is_active = 1
+        GROUP BY c.id
+        HAVING lastVisit IS NOT NULL
+           AND lastVisit &lt; date(#{today}, '-' || #{days} || ' day')
+        ORDER BY totalSpent DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- ==================== 触达 ==================== -->
+
+    <insert id="insertContact" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO contact_log(customer_id, pet_id, task_id, channel, result, content,
+                                next_follow_on, operator, created_at)
+        VALUES (#{customerId}, #{petId}, #{taskId}, #{channel}, #{result}, #{content},
+                #{nextFollowOn}, #{operator}, #{createdAt})
+    </insert>
+
+    <select id="findContacts" resultType="com.petshop.module.crm.ContactLog">
+        SELECT l.*, c.name AS customer_name, p.name AS pet_name
+        FROM contact_log l
+        JOIN customer c ON c.id = l.customer_id
+        LEFT JOIN pet p ON p.id = l.pet_id
+        WHERE l.customer_id = #{customerId}
+        ORDER BY l.id DESC LIMIT #{limit}
+    </select>
+
+    <!-- ==================== 客户 360 ==================== -->
+
+    <select id="customerStats" resultType="map">
+        SELECT COUNT(*) AS billCount,
+               IFNULL(SUM(CASE WHEN bill_type = 'SALE' THEN 1 ELSE 0 END), 0) AS saleCount,
+               IFNULL(SUM(received_cent), 0) AS totalSpent,
+               MAX(business_date) AS lastVisit
+        FROM bill WHERE customer_id = #{customerId} AND status = 'SETTLED'
+    </select>
+
+    <select id="topServices" resultType="map">
+        SELECT i.name_snapshot AS name, SUM(i.qty) AS qty
+        FROM bill_item i JOIN bill b ON b.id = i.bill_id
+        WHERE b.customer_id = #{customerId} AND b.status = 'SETTLED'
+          AND i.item_type = 'SERVICE'
+        GROUP BY i.name_snapshot
+        ORDER BY qty DESC LIMIT 3
+    </select>
+
+</mapper>

@@ -95,11 +95,12 @@
     <update id="settle">
         UPDATE bill SET status = 'SETTLED', received_cent = #{receivedCent},
                         pay_method = #{payMethod}, settled_at = #{settledAt}
-        WHERE id = #{id}
+        WHERE id = #{id} AND status = 'OPEN'
     </update>
 
+    <!-- 反结账：条件更新保证并发/重复点击时只有一个请求能回滚成功 -->
     <update id="cancel">
         UPDATE bill SET status = 'CANCELLED', cancelled_at = #{cancelledAt}, cancel_reason = #{reason}
-        WHERE id = #{id}
+        WHERE id = #{id} AND status = 'SETTLED'
     </update>
 </mapper>

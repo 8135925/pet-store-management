@@ -56,6 +56,11 @@ public class ConfigService {
         return getInt("low_stock_warn", 3);
     }
 
+    /** 每时段预约容量（v1.1） */
+    public int slotCapacity() {
+        return getInt("slot_capacity", 3);
+    }
+
     public void save(Map<String, String> kv) {
         for (Map.Entry<String, String> e : kv.entrySet()) {
             if (e.getKey() == null || e.getValue() == null) {

@@ -9,6 +9,8 @@
         <result property="qtyChange" column="qty_change"/>
         <result property="beforeQty" column="before_qty"/>
         <result property="afterQty" column="after_qty"/>
+        <result property="unitCostCent" column="unit_cost_cent"/>
+        <result property="batchId" column="batch_id"/>
         <result property="refType" column="ref_type"/>
         <result property="refId" column="ref_id"/>
         <result property="operator" column="operator"/>
@@ -19,10 +21,18 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO product_ledger(product_id, biz_type, qty_change, before_qty, after_qty,
-                                   ref_type, ref_id, operator, remark, created_at)
+                                   unit_cost_cent, batch_id, ref_type, ref_id, operator, remark, created_at)
         VALUES (#{productId}, #{bizType}, #{qtyChange}, #{beforeQty}, #{afterQty},
-                #{refType}, #{refId}, #{operator}, #{remark}, #{createdAt})
+                #{unitCostCent}, #{batchId}, #{refType}, #{refId}, #{operator}, #{remark}, #{createdAt})
     </insert>
+
+    <!-- 反结账：按单按商品捞本轮出库台账，用于按批次精确回补 -->
+    <select id="findSaleByBillAndProduct" resultMap="ledgerMap">
+        SELECT * FROM product_ledger
+        WHERE ref_type = 'BILL' AND ref_id = #{billId}
+          AND product_id = #{productId} AND biz_type = 'SALE'
+        ORDER BY id
+    </select>
 
     <select id="findByProduct" resultMap="ledgerMap">
         SELECT l.*, p.name AS product_name

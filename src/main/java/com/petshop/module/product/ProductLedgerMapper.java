@@ -13,4 +13,8 @@ public interface ProductLedgerMapper {
     List<ProductLedger> findByProduct(@Param("productId") Long productId);
 
     List<ProductLedger> findRecent(@Param("limit") int limit);
+
+    /** 反结账用：某单某商品的出库台账（按 id 升序） */
+    List<ProductLedger> findSaleByBillAndProduct(@Param("billId") Long billId,
+                                                 @Param("productId") Long productId);
 }

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('数据体检')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">数据体检
+        <span class="sub" th:text="${abnormal == 0 ? '全部通过' : abnormal + ' 项存在异常'}"></span>
+        <a class="btn ghost sm" th:href="@{/system/health}">重新检查</a>
+      </h1>
+
+      <div class="alert ok" th:if="${abnormal == 0}">未发现数据一致性问题。</div>
+      <div class="alert err" th:if="${abnormal > 0}">
+        发现 <b th:text="${abnormal}"></b> 项异常，请核对下方明细后处理（体检只读，不会修改数据）。
+      </div>
+
+      <div class="card" th:each="c : ${checks}" style="margin-bottom:14px">
+        <div class="card-head">
+          <span th:text="${c.name}"></span>
+          <span class="badge"
+                th:classappend="${c.count < 0 ? 'warn' : (c.count > 0 ? 'danger' : 'ok')}"
+                th:text="${c.count < 0 ? '检查失败' : (c.count > 0 ? '异常 ' + c.count + ' 条' : '正常')}"></span>
+        </div>
+        <div class="card-body" th:if="${c.error != null}">
+          <div class="alert err" style="margin:0" th:text="${c.error}"></div>
+        </div>
+        <div class="card-body flush" th:if="${c.count > 0}">
+          <table class="tbl">
+            <thead>
+            <tr><th th:each="k : ${c.rows[0].keySet()}" th:text="${k}"></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${c.rows}">
+              <td class="small" th:each="k : ${c.rows[0].keySet()}" th:text="${r[k]}"></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

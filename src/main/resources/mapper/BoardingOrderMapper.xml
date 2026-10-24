@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.petshop.module.boarding.BoardingOrderMapper">
+
+    <resultMap id="orderMap" type="com.petshop.module.boarding.BoardingOrder">
+        <id property="id" column="id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="petId" column="pet_id"/>
+        <result property="roomId" column="room_id"/>
+        <result property="startAt" column="start_at"/>
+        <result property="plannedEndOn" column="planned_end_on"/>
+        <result property="endAt" column="end_at"/>
+        <result property="days" column="days"/>
+        <result property="unitPriceCent" column="unit_price_cent"/>
+        <result property="depositCent" column="deposit_cent"/>
+        <result property="status" column="status"/>
+        <result property="billId" column="bill_id"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="petName" column="pet_name"/>
+        <result property="species" column="species"/>
+        <result property="breed" column="breed"/>
+        <result property="ownerName" column="owner_name"/>
+        <result property="ownerPhone" column="owner_phone"/>
+        <result property="roomCode" column="room_code"/>
+        <result property="roomType" column="room_type"/>
+        <result property="billNo" column="bill_no"/>
+    </resultMap>
+
+    <sql id="base">
+        SELECT o.*, p.name AS pet_name, p.species, p.breed,
+               c.name AS owner_name, c.phone AS owner_phone,
+               r.code AS room_code, r.room_type,
+               b.bill_no AS bill_no
+          FROM boarding_order o
+          JOIN pet p ON p.id = o.pet_id
+          JOIN customer c ON c.id = o.customer_id
+          JOIN boarding_room r ON r.id = o.room_id
+          LEFT JOIN bill b ON b.id = o.bill_id
+    </sql>
+
+    <select id="findById" resultMap="orderMap">
+        <include refid="base"/> WHERE o.id = #{id}
+    </select>
+
+    <!-- BR-10 笼位互斥：new_start < old_end 且 old_start < new_end -->
+    <select id="countConflict" resultType="int">
+        SELECT COUNT(*) FROM boarding_order
+        WHERE room_id = #{roomId}
+          AND status IN ('BOOKED', 'CHECKED_IN')
+          AND id != COALESCE(#{excludeId}, -1)
+          AND start_at &lt; #{end}
+          AND (COALESCE(end_at, planned_end_on || ' 23:59')) &gt; #{startAt}
+    </select>
+
+    <select id="countActiveByPet" resultType="int">
+        SELECT COUNT(*) FROM boarding_order
+        WHERE pet_id = #{petId} AND status = 'CHECKED_IN'
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO boarding_order(order_no, customer_id, pet_id, room_id, start_at,
+               planned_end_on, unit_price_cent, deposit_cent, status, remark, created_at, created_by)
+        VALUES(#{orderNo}, #{customerId}, #{petId}, #{roomId}, #{startAt},
+               #{plannedEndOn}, #{unitPriceCent}, #{depositCent}, #{status}, #{remark}, #{createdAt}, #{createdBy})
+    </insert>
+
+    <!-- 状态流转全部带前置状态条件：并发重复提交时只会有一次生效 -->
+    <update id="markCheckedIn">
+        UPDATE boarding_order SET status = 'CHECKED_IN', start_at = #{startAt}
+        WHERE id = #{id} AND status = 'BOOKED'
+    </update>
+
+    <update id="extend">
+        UPDATE boarding_order SET planned_end_on = #{plannedEndOn}, remark = #{remark}
+        WHERE id = #{id} AND status IN ('BOOKED', 'CHECKED_IN')
+    </update>
+
+    <update id="checkout">
+        UPDATE boarding_order SET status = 'CHECKED_OUT', end_at = #{endAt},
+               days = #{days}, bill_id = #{billId}
+        WHERE id = #{id} AND status = 'CHECKED_IN'
+    </update>
+
+    <update id="cancel">
+        UPDATE boarding_order SET status = 'CANCELLED'
+        WHERE id = #{id} AND status = 'BOOKED'
+    </update>
+
+    <select id="findInHouse" resultMap="orderMap">
+        <include refid="base"/>
+        WHERE o.status = 'CHECKED_IN'
+        ORDER BY o.planned_end_on ASC
+    </select>
+
+    <select id="findTodayArrivals" resultMap="orderMap">
+        <include refid="base"/>
+        WHERE o.status = 'BOOKED' AND substr(o.start_at, 1, 10) = #{today}
+        ORDER BY o.start_at ASC
+    </select>
+
+    <select id="findTodayDue" resultMap="orderMap">
+        <include refid="base"/>
+        WHERE o.status = 'CHECKED_IN' AND o.planned_end_on &lt;= #{today}
+        ORDER BY o.planned_end_on ASC
+    </select>
+
+    <sql id="cond">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (o.order_no LIKE '%' || #{keyword} || '%'
+                     OR c.name LIKE '%' || #{keyword} || '%'
+                     OR c.phone LIKE '%' || #{keyword} || '%'
+                     OR p.name LIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="dateFrom != null"> AND o.start_at &gt;= #{dateFrom} </if>
+            <if test="dateTo != null"> AND o.start_at &lt;= #{dateTo} || ' 23:59:59' </if>
+        </where>
+    </sql>
+
+    <select id="search" resultMap="orderMap">
+        <include refid="base"/>
+        <include refid="cond"/>
+        ORDER BY o.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*) FROM boarding_order o
+        JOIN pet p ON p.id = o.pet_id
+        JOIN customer c ON c.id = o.customer_id
+        <include refid="cond"/>
+    </select>
+
+    <select id="countByNoPrefix" resultType="long">
+        SELECT COUNT(*) FROM boarding_order WHERE order_no LIKE #{prefix} || '%'
+    </select>
+</mapper>

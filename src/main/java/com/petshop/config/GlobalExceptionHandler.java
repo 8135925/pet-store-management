@@ -54,15 +54,26 @@ public class GlobalExceptionHandler {
         return "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
     }
 
+    /** 只允许跳回站内路径，防止 //evil.com 之类的开放重定向 */
     private String referer(HttpServletRequest req) {
         String ref = req.getHeader("Referer");
         if (ref == null || ref.trim().isEmpty()) {
             return "/";
         }
-        // 只允许站内跳转
+        ref = ref.trim();
         if (ref.startsWith("http://") || ref.startsWith("https://")) {
             int idx = ref.indexOf('/', ref.indexOf("//") + 2);
-            return idx < 0 ? "/" : ref.substring(idx);
+            ref = idx < 0 ? "/" : ref.substring(idx);
+        }
+        if (ref.indexOf('\r') >= 0 || ref.indexOf('\n') >= 0) {
+            return "/";
+        }
+        // 必须以单个 / 开头：排除 //host、/\host、绝对 URL
+        if (!ref.startsWith("/") || ref.startsWith("//")) {
+            return "/";
+        }
+        if (ref.length() > 1 && (ref.charAt(1) == '\\' || ref.charAt(1) == '/')) {
+            return "/";
         }
         return ref;
     }

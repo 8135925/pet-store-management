@@ -13,16 +13,19 @@
             WHERE b.bill_type='SALE' AND b.status='SETTLED'
               AND b.business_date = #{date}
               AND i.item_type='PRODUCT' AND i.paid_by_card=0)   AS productIncome,
+          <!-- 服务列含寄养明细（BOARDING），否则寄养收入在日汇总里会凭空消失 -->
           (SELECT IFNULL(SUM(i.amount_cent),0) FROM bill_item i
             JOIN bill b ON b.id=i.bill_id
             WHERE b.bill_type='SALE' AND b.status='SETTLED'
               AND b.business_date = #{date}
-              AND i.item_type='SERVICE' AND i.paid_by_card=0)   AS serviceIncome,
+              AND i.item_type IN ('SERVICE','BOARDING') AND i.paid_by_card=0) AS serviceIncome,
           (SELECT COUNT(*) FROM bill
             WHERE bill_type='SALE' AND status='SETTLED'
               AND business_date = #{date})                      AS billCount,
-          (SELECT IFNULL(SUM(qty),0) FROM card_consume_log l
-            WHERE substr(l.created_at,1,10) = #{date})          AS consumeTimes
+          <!-- 核销次数按所属单据营业日统计，与其它列同口径；已反结账的单不计 -->
+          (SELECT IFNULL(SUM(l.qty),0) FROM card_consume_log l
+            JOIN bill b ON b.id = l.bill_id
+            WHERE b.business_date = #{date} AND b.status = 'SETTLED') AS consumeTimes
     </select>
 
     <select id="dashboard" resultType="map">
@@ -49,6 +52,7 @@
           (SELECT COUNT(*) FROM product
             WHERE is_active = 1
               AND ((safety_qty &gt; 0 AND stock_qty &lt;= safety_qty)
-                   OR (safety_qty = 0 AND stock_qty &lt;= (SELECT IFNULL(CAST(v AS INTEGER),3) FROM store_config WHERE k='low_stock_warn')))) AS lowStockCount
+                   OR (safety_qty = 0 AND stock_qty &lt;= IFNULL(
+                        (SELECT CAST(v AS INTEGER) FROM store_config WHERE k='low_stock_warn'), 3)))) AS lowStockCount
     </select>
 </mapper>

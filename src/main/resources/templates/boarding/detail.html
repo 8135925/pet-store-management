@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('寄养单详情')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <div class="toolbar" style="margin-bottom:8px">
+        <button type="button" class="btn ghost sm" data-back="/boarding">← 返回寄养看板</button>
+      </div>
+      <h1 class="page-title">寄养单 <span th:text="${o.orderNo}"></span>
+        <span class="badge" th:classappend="${o.status == 'CHECKED_IN'} ? 'primary' : (${o.status == 'CANCELLED'} ? 'danger' : 'ok')"
+              th:text="${ui.boardingStatus(o.status)}"></span>
+        <span class="badge danger" th:if="${o.overdue}" th:text="'超期 ' + ${o.overdueDays()} + ' 天'"></span>
+      </h1>
+
+      <div class="card" style="max-width:760px">
+        <div class="card-body">
+          <table class="tbl">
+            <tbody>
+              <tr><td class="muted">宠物</td><td><b th:text="${o.petName}"></b>（<span th:text="${o.breed}"></span>）</td>
+                  <td class="muted">主人</td><td><span th:text="${o.ownerName}"></span>
+                      <a th:href="'tel:' + ${o.ownerPhone}" th:text="${o.ownerPhone}"></a></td></tr>
+              <tr><td class="muted">笼位</td><td><span class="badge primary" th:text="${o.roomCode}"></span>
+                      <span class="muted small" th:text="${o.roomType}"></span></td>
+                  <td class="muted">每晚价</td><td th:text="${ui.money(o.unitPriceCent)}"></td></tr>
+              <tr><td class="muted">入住时间</td><td th:text="${ui.dt(o.startAt)}"></td>
+                  <td class="muted">预离店日</td><td th:text="${o.plannedEndOn}"></td></tr>
+              <tr><td class="muted">实际退住</td><td th:text="${ui.dt(o.endAt)}"></td>
+                  <td class="muted">计费晚数</td><td th:text="${o.days != null} ? ${o.days} + ' 晚' : '—'"></td></tr>
+              <tr><td class="muted">押金</td><td th:text="${ui.money(o.depositCent)}"></td>
+                  <td class="muted">结算单</td><td>
+                    <a th:if="${o.billId != null}" th:href="@{/bills/{id}(id=${o.billId})}"
+                       th:text="'单据 ' + ${o.billNo}"></a>
+                    <span th:if="${o.billId == null}" class="muted">未结算</span></td></tr>
+              <tr><td class="muted">备注</td><td colspan="3" th:text="${o.remark} ?: '—'"></td></tr>
+            </tbody>
+          </table>
+
+          <div class="mt16" th:if="${o.status == 'BOOKED'}">
+            <form method="post" th:action="@{/boarding/{id}/checkin(id=${o.id})}" style="display:inline"
+                  onsubmit="return confirmAct('确认办理入住？将校验疫苗记录（BR-09）。')">
+              <button class="btn primary">✅ 办理入住</button>
+            </form>
+            <form method="post" th:action="@{/boarding/{id}/cancel(id=${o.id})}" style="display:inline"
+                  onsubmit="return confirmAct('确认取消该寄养单？')">
+              <button class="btn ghost">取消寄养单</button>
+            </form>
+          </div>
+
+          <div class="mt16" th:if="${o.status == 'CHECKED_IN'}">
+            <form method="post" th:action="@{/boarding/{id}/checkout(id=${o.id})}" style="display:inline"
+                  onsubmit="return confirmAct('确认退住并结算？晚数按实际天数计（BR-11）。')">
+              <select class="input" name="payMethod" required>
+                <option value="CASH">现金</option><option value="WECHAT">微信</option>
+                <option value="ALIPAY">支付宝</option><option value="BANK_CARD">银行卡</option>
+                <option value="OTHER">其他</option>
+              </select>
+              <button class="btn primary">💵 退住结算</button>
+            </form>
+            <form method="post" th:action="@{/boarding/{id}/extend(id=${o.id})}" style="display:inline;margin-top:8px">
+              <label class="small muted">预离店日改为</label>
+              <input class="input" type="date" name="plannedEndOn" required>
+              <input class="input" type="text" name="note" placeholder="修改原因（客户加住等）" style="width:200px">
+              <button class="btn ghost">改期</button>
+            </form>
+          </div>
+
+          <div class="mt16">
+            <a class="btn ghost" href="/boarding">返回看板</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt16" style="max-width:760px" th:if="${o.status == 'CHECKED_IN'}">
+        <div class="card-body">
+          <h2 class="sub">📝 每日记录（一天一条，BR-14）</h2>
+          <form method="post" th:action="@{/boarding/{id}/log(id=${o.id})}" class="toolbar">
+            <input type="date" class="input" name="logDate" required th:value="${today}">
+            <label class="small">喂食次数</label>
+            <input type="number" class="input" name="fedCount" value="2" min="0" max="9" style="width:70px">
+            <label class="small"><input type="checkbox" name="walked" value="true"> 遛弯</label>
+            <input type="text" class="input" name="note" placeholder="精神/大便/异常" style="width:180px">
+            <button class="btn ghost" type="submit">保存</button>
+          </form>
+          <table class="tbl mt16">
+            <thead><tr><th>日期</th><th>喂食</th><th>遛弯</th><th>记录</th><th>记录人</th></tr></thead>
+            <tbody>
+              <tr th:each="l : ${logs}">
+                <td th:text="${l.logDate}"></td>
+                <td th:text="${l.fedCount} + ' 次'"></td>
+                <td th:text="${l.walked} ? '✅' : '—'"></td>
+                <td th:text="${l.note} ?: '—'"></td>
+                <td class="small" th:text="${l.operator}"></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(logs)}"><td colspan="5" class="muted">还没有记录</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

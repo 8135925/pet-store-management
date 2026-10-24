@@ -13,6 +13,10 @@
         <result property="expireOn" column="expire_on"/>
         <result property="isActive" column="is_active"/>
         <result property="createdAt" column="created_at"/>
+        <result property="spec" column="spec"/>
+        <result property="category" column="category"/>
+        <result property="shelfLifeDays" column="shelf_life_days"/>
+        <result property="defaultSupplierId" column="default_supplier_id"/>
     </resultMap>
 
     <select id="findById" resultMap="prodMap">
@@ -51,15 +55,18 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO product(name, barcode, sale_price_cent, cost_price_cent, stock_qty, safety_qty,
-                            expire_on, is_active, created_at)
+                            expire_on, is_active, created_at, spec, category, shelf_life_days,
+                            default_supplier_id)
         VALUES (#{name}, #{barcode}, #{salePriceCent}, #{costPriceCent}, #{stockQty}, #{safetyQty},
-                #{expireOn}, #{isActive}, #{createdAt})
+                #{expireOn}, #{isActive}, #{createdAt}, #{spec}, #{category}, #{shelfLifeDays},
+                #{defaultSupplierId})
     </insert>
 
     <update id="update">
         UPDATE product SET name = #{name}, barcode = #{barcode}, sale_price_cent = #{salePriceCent},
                cost_price_cent = #{costPriceCent}, safety_qty = #{safetyQty}, expire_on = #{expireOn},
-               is_active = #{isActive}
+               is_active = #{isActive}, spec = #{spec}, category = #{category},
+               shelf_life_days = #{shelfLifeDays}, default_supplier_id = #{defaultSupplierId}
         WHERE id = #{id}
     </update>
 

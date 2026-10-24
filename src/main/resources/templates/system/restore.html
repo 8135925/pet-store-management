@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/head :: head('备份恢复')"></head>
+<body>
+<div class="layout">
+  <aside th:replace="fragments/sidebar :: sidebar"></aside>
+  <div class="main">
+    <header th:replace="fragments/header :: header"></header>
+    <div class="content">
+      <div th:replace="fragments/header :: flash"></div>
+      <h1 class="page-title">备份恢复 <span class="sub">校验通过后，重启服务完成替换</span></h1>
+
+      <div class="alert err" th:if="${pending}">
+        已有待执行的恢复任务：重启服务后才会替换当前数据库。
+        <a th:href="@{/maintenance}">查看维护页</a>
+      </div>
+      <div class="alert ok" th:if="${maintenance and !pending}">系统处于维护模式，重启后即可恢复使用。</div>
+
+      <div class="card" style="max-width:760px">
+        <div class="card-head"><span>选择恢复来源</span></div>
+        <div class="card-body">
+          <form method="post" th:action="@{/system/restore/prepare}" enctype="multipart/form-data"
+                onsubmit="return confirm('确认用该备份替换当前数据库？系统将进入维护模式，需要重启服务完成替换。')">
+            <div class="field">
+              <label>已有备份</label>
+              <select name="fileName">
+                <option value="">不使用已有备份</option>
+                <option th:each="b : ${backups}" th:value="${b}" th:text="${b}"></option>
+              </select>
+            </div>
+            <div class="field mt8">
+              <label>或上传备份文件（.db）</label>
+              <input type="file" name="file" accept=".db">
+            </div>
+            <div class="small muted mt8">
+              恢复前会自动为当前数据库做一次备份；文件会校验完整性、必需表结构与可用管理员账号。
+            </div>
+            <div class="mt16">
+              <button class="btn danger" type="submit">校验并准备恢复</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:760px">
+        <div class="card-head"><span>取消恢复</span></div>
+        <div class="card-body">
+          <div class="small muted" th:if="${pending}">删除待恢复标记并退出维护模式，继续使用当前数据库。</div>
+          <div class="small muted" th:unless="${pending}">当前没有待执行的恢复任务。</div>
+          <form method="post" th:action="@{/system/restore/cancel}" class="mt16" th:if="${pending or maintenance}">
+            <button class="btn ghost" type="submit">取消并恢复正常使用</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:760px">
+        <div class="card-head"><span>备份文件</span></div>
+        <div class="card-body flush">
+          <table class="tbl">
+            <thead><tr><th>文件名</th></tr></thead>
+            <tbody>
+            <tr th:each="b : ${backups}"><td th:text="${b}"></td></tr>
+            <tr th:if="${#lists.isEmpty(backups)}"><td class="muted">还没有备份，可先在「数据备份」页手动备份一次</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

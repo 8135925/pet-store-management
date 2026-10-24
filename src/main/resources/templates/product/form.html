@@ -8,6 +8,9 @@
     <header th:replace="fragments/header :: header"></header>
     <div class="content">
       <div th:replace="fragments/header :: flash"></div>
+      <div class="toolbar" style="margin-bottom:8px">
+        <button type="button" class="btn ghost sm" data-back="/products">← 返回商品库存</button>
+      </div>
       <h1 class="page-title" th:text="${product.id == null} ? '新增商品' : '编辑商品'"></h1>
 
       <div class="card" style="max-width:640px">

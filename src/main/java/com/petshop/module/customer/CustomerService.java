@@ -28,13 +28,17 @@ public class CustomerService {
 
     public PageResult<Customer> search(String keyword, boolean includeInactive, int page, int size) {
         int p = Math.max(page, 1);
-        int off = (p - 1) * size;
+        int s = Math.min(Math.max(size, 1), 200);
+        long off = (long) (p - 1) * s;
+        if (off > Integer.MAX_VALUE) {
+            off = Integer.MAX_VALUE;
+        }
         String kw = keyword == null ? "" : keyword.trim();
         long total = customerMapper.countSearch(kw, includeInactive);
         List<Customer> rows = total == 0
                 ? java.util.Collections.<Customer>emptyList()
-                : customerMapper.search(kw, includeInactive, off, size);
-        return new PageResult<>(rows, total, p, size);
+                : customerMapper.search(kw, includeInactive, (int) off, s);
+        return new PageResult<>(rows, total, p, s);
     }
 
     public Customer findById(Long id) {
@@ -66,7 +70,12 @@ public class CustomerService {
         c.setSource(source);
         c.setRemark(remark);
         c.setCreatedAt(LocalDateTime.now());
-        customerMapper.insert(c);
+        try {
+            customerMapper.insert(c);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // 并发建档时唯一索引兜底，转成可读提示
+            throw new BizException(ErrorCode.CUSTOMER_EXISTS);
+        }
         return c.getId();
     }
 
@@ -83,7 +92,11 @@ public class CustomerService {
         c.setPhone(phone);
         c.setSource(source);
         c.setRemark(remark);
-        customerMapper.update(c);
+        try {
+            customerMapper.update(c);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new BizException(ErrorCode.CUSTOMER_EXISTS);
+        }
     }
 
     /** 有历史单据只允许停用，禁止物理删除 */

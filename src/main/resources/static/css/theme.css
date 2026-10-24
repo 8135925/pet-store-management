@@ -42,14 +42,18 @@ a:hover { color: var(--primary); }
 }
 .sidebar .brand {
   display: flex; align-items: center; gap: 8px;
-  font-size: 17px; font-weight: 700; color: var(--primary-dark);
+  font-size: 14px; font-weight: 700; color: var(--primary-dark);
   padding: 4px 10px 16px;
+  white-space: nowrap; overflow: hidden;
 }
 .sidebar .brand .logo {
-  width: 30px; height: 30px; border-radius: 9px;
+  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
   background: var(--primary); color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 17px;
+}
+.sidebar .brand span:not(.logo) {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
 }
 .nav-group-title { font-size: 11px; color: var(--muted); padding: 12px 10px 4px; }
 .nav a {
@@ -59,7 +63,13 @@ a:hover { color: var(--primary); }
 }
 .nav a .ico { width: 20px; text-align: center; opacity: .85; }
 .nav a:hover { background: var(--primary-light); }
-.nav a.active { background: var(--primary); color: #fff; }
+.nav a.active {
+  background: var(--primary); color: #fff;
+  /* 阴影标识用户当前所在页面 */
+  box-shadow: 0 4px 12px -2px rgba(208, 118, 58, .55);
+  font-weight: 600;
+}
+.nav a.active .ico { opacity: 1; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar {

@@ -113,8 +113,45 @@ public class UiHelper {
         switch (t) {
             case "VACCINE": return "疫苗";
             case "RABIES": return "狂犬";
-            case "DEWORM": return "驱虫";
+            case "DEWORM": return "体内驱虫";
+            case "OUT_DEWORM": return "体外驱虫";
             case "CHECKUP": return "体检";
+            default: return t;
+        }
+    }
+
+    /** 寄养单状态 */
+    public String boardingStatus(String s) {
+        if (s == null) return "—";
+        switch (s) {
+            case "BOOKED": return "已订未住";
+            case "CHECKED_IN": return "在住";
+            case "CHECKED_OUT": return "已退住";
+            case "CANCELLED": return "已取消";
+            default: return s;
+        }
+    }
+
+    /** 预约状态 */
+    public String apptStatus(String s) {
+        if (s == null) return "—";
+        switch (s) {
+            case "BOOKED": return "已预约";
+            case "ARRIVED": return "已到店";
+            case "DONE": return "已完成";
+            case "CANCELLED": return "已取消";
+            case "NO_SHOW": return "未到";
+            default: return s;
+        }
+    }
+
+    /** 明细类型（v1.1 含寄养） */
+    public String itemType(String t) {
+        if (t == null) return "—";
+        switch (t) {
+            case "SERVICE": return "服务";
+            case "PRODUCT": return "商品";
+            case "BOARDING": return "寄养";
             default: return t;
         }
     }
